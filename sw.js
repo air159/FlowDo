@@ -45,8 +45,12 @@ self.addEventListener('message', e => {
 
   const tag = isTest ? 'flowdo-summary-test' : 'flowdo-summary-' + dateStr;
 
-  e.waitUntil(
-    self.registration.showNotification(title, {
+  e.waitUntil((async () => {
+    const existing = await self.registration.getNotifications();
+    existing.forEach(n => {
+      if ((n.tag || '').startsWith('flowdo-summary-')) n.close();
+    });
+    await self.registration.showNotification(title, {
       body,
       icon:     '/icon-192.png',
       badge:    '/icon-192.png',
@@ -54,8 +58,8 @@ self.addEventListener('message', e => {
       renotify: false,
       data:     { dateStr, isTest: !!isTest },
       actions:  [{ action: 'open', title: '📅 Open today' }]
-    })
-  );
+    });
+  })());
 });
 
 // ── Notification tap ──────────────────────────────────────────────────────────

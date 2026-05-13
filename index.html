@@ -425,7 +425,7 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#1e3a5f!import
       <textarea class="form-input" id="f-notes" style="height:72px;resize:vertical" placeholder="Extra details…"></textarea>
     </div>
   <div class="modal-foot" style="justify-content:space-between">
-    <button class="delete-btn" id="delete-btn" style="display:none" onclick="deleteEditingTask()">Delete task</button>
+    <button class="delete-btn" id="delete-btn" style="display:none" onclick="deleteEditingTask()">Delete</button>
     <div style="display:flex;gap:10px">
     <button class="cancel-btn" onclick="closeForm()">Cancel</button>
     <button class="save-btn" id="save-btn" onclick="saveTask()" disabled>Add Task</button>
@@ -441,7 +441,7 @@ import { initializeApp }                              from 'https://www.gstatic.
 import { getAuth, GoogleAuthProvider, signInWithPopup,
          signOut as fbSignOut, onAuthStateChanged }   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import { getFirestore, collection, doc, setDoc,
-         deleteDoc, onSnapshot,
+         deleteDoc, updateDoc, onSnapshot,
          enableIndexedDbPersistence }                 from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 // ▼▼▼  PASTE YOUR FIREBASE CONFIG HERE  ▼▼▼
@@ -487,6 +487,9 @@ window._stopListening = () => { if (unsubscribeTasks) { unsubscribeTasks(); unsu
 
 window._saveTask = async (uid, task) => {
   await setDoc(doc(db, 'users', uid, 'tasks', task.id), task);
+};
+window._patchTask = async (uid, id, patch) => {
+  await updateDoc(doc(db, 'users', uid, 'tasks', id), patch);
 };
 
 window._deleteTask = async (uid, id) => {
@@ -571,6 +574,7 @@ function closeUserMenu() {
 
 // ─── TASK PERSISTENCE (Firebase instead of localStorage) ──────────────────────
 let tasks = [];
+const pendingToggleIds = new Set();
 
 async function fbSave(task) {
   if (!currentUser) return;
@@ -582,6 +586,11 @@ async function fbDelete(id) {
   if (!currentUser) return;
   setSyncStatus('syncing');
   try { await window._deleteTask(currentUser.uid, id); } catch(e) { setSyncStatus('error'); }
+}
+async function fbPatch(id, patch) {
+  if (!currentUser) return;
+  setSyncStatus('syncing');
+  try { await window._patchTask(currentUser.uid, id, patch); } catch(e) { setSyncStatus('error'); }
 }
 
 // ─── DATE UTILS ───────────────────────────────────────────────────────────────
@@ -706,6 +715,7 @@ function goToday()   { calDate = new Date(); renderCalendar(); openDay(todayDS()
 // ─── UNIFIED BACK-NAVIGATION (Android swipe / hardware back button) ──────────
 // Tracks which modal/panel is currently open so popstate knows what to close
 let _modalStack = []; // stack of close-functions
+let _ignoreNextPop = false;
 
 function _pushModal(closeFn) {
   history.pushState({ flowdoModal: true }, '');
@@ -713,12 +723,16 @@ function _pushModal(closeFn) {
 }
 
 function _popModal() {
-  // Called by the UI close buttons — remove our history state and pop the stack
-  _modalStack.pop();
-  if (history.state && history.state.flowdoModal) history.back();
+  const closeFn = _modalStack.pop();
+  if (closeFn) closeFn();
+  if (history.state && history.state.flowdoModal) {
+    _ignoreNextPop = true;
+    history.back();
+  }
 }
 
 window.addEventListener('popstate', () => {
+  if (_ignoreNextPop) { _ignoreNextPop = false; return; }
   // Android back swipe / hardware back hit — close whatever is on top
   const closeFn = _modalStack.pop();
   if (closeFn) closeFn();
@@ -833,35 +847,41 @@ function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;'
 
 // ─── TASK ACTIONS ─────────────────────────────────────────────────────────────
 async function toggleTask(id) {
-  const t = tasks.find(x => x.id === id);
-  if (!t) return;
-  if (!t.completed) {
-    t.completed = true; t.completedAt = t.date || todayDS();
-    await fbSave(t);
-    if (t.type === 'recurring' && t.recurringDays) {
-      const base = t.date || todayDS();
-      const childDate = addDays(base, t.recurringDays);
-      const existingChild = tasks.find(x => x.parentRecurringId === t.id && x.date === childDate && x.type === 'recurring');
-      const childId = existingChild ? existingChild.id : genId();
-      t.spawnedId = childId;
-      await fbSave(t);
-      if (!existingChild) {
-      const child = {id:childId, title:t.title, type:'recurring', date:childDate,
-        parentRecurringId:t.id,
-        priority:t.priority, recurringDays:t.recurringDays, notes:t.notes||'',
-        autoReschedule: t.autoReschedule || false,
-        completed:false, completedAt:null, createdAt:new Date().toISOString()};
-      await fbSave(child);
+  if (pendingToggleIds.has(id)) return;
+  pendingToggleIds.add(id);
+  try {
+    const t = tasks.find(x => x.id === id);
+    if (!t) return;
+    if (!t.completed) {
+      t.completed = true; t.completedAt = t.date || todayDS();
+      await fbPatch(t.id, { completed: true, completedAt: t.completedAt });
+      if (t.type === 'recurring' && t.recurringDays) {
+        const base = t.date || todayDS();
+        const childDate = addDays(base, t.recurringDays);
+        const existingChild = tasks.find(x => x.parentRecurringId === t.id && x.date === childDate && x.type === 'recurring');
+        const childId = existingChild ? existingChild.id : genId();
+        t.spawnedId = childId;
+        await fbPatch(t.id, { spawnedId: childId });
+        if (!existingChild) {
+          const child = {id:childId, title:t.title, type:'recurring', date:childDate,
+            parentRecurringId:t.id,
+            priority:t.priority, recurringDays:t.recurringDays, notes:t.notes||'',
+            autoReschedule: t.autoReschedule || false,
+            completed:false, completedAt:null, createdAt:new Date().toISOString()};
+          await fbSave(child);
+        }
       }
+    } else {
+      if (t.spawnedId) {
+        const child = tasks.find(x => x.id === t.spawnedId);
+        if (child && !child.completed) await fbDelete(child.id);
+        await fbPatch(t.id, { spawnedId: null });
+      }
+      t.completed = false; t.completedAt = null;
+      await fbPatch(t.id, { completed: false, completedAt: null });
     }
-  } else {
-    if (t.spawnedId) {
-      const child = tasks.find(x => x.id === t.spawnedId);
-      if (child && !child.completed) await fbDelete(child.id);
-      delete t.spawnedId;
-    }
-    t.completed = false; t.completedAt = null;
-    await fbSave(t);
+  } finally {
+    pendingToggleIds.delete(id);
   }
 }
 
@@ -1071,10 +1091,10 @@ async function runRescheduleCheck() {
   if (!currentUser) return;
   const td = todayDS();
   const overdue = tasks.filter(t =>
-    t.autoReschedule && !t.completed && t.date && t.date < td
+    t.autoReschedule && !t.completed && t.date && t.date < td && !pendingToggleIds.has(t.id)
   );
   if (overdue.length) {
-    for (const t of overdue) { t.date = td; await fbSave(t); }
+    for (const t of overdue) { t.date = td; await fbPatch(t.id, { date: td }); }
     const n = overdue.length;
     showToast(`🔁 ${n} overdue task${n > 1 ? 's' : ''} rescheduled to today`);
   }
