@@ -267,7 +267,7 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#1e3a5f!import
         <button class="tab-btn active" id="tab-cal" onclick="switchView('calendar')">📅 Calendar</button>
         <button class="tab-btn" id="tab-bl" onclick="switchView('backlog')">📦 Backlog <span class="tab-badge" id="bl-badge" style="display:none">0</span></button>
       </div>
-      <div id="user-avatar-wrap" onclick="toggleUserMenu()"></div>
+      <div id="user-avatar-wrap" onclick="openNotifSettings()"></div>
     </div>
   </header>
 
@@ -285,7 +285,6 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#1e3a5f!import
     <div id="menu-name"></div>
     <div class="user-menu-email" id="menu-email"></div>
   </div>
-  <button class="user-menu-btn" onclick="openNotifSettings()">🔔 Notification settings</button>
   <button class="user-menu-btn danger" onclick="signOut()">🚪 Sign out</button>
 </div>
 <div class="backdrop" id="user-menu-backdrop" style="display:none;z-index:399" onclick="closeUserMenu()"></div>
@@ -328,6 +327,7 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#1e3a5f!import
     <button class="save-btn" id="notif-test-btn" style="align-self:flex-start;padding:8px 18px;font-size:13px" onclick="sendTestNotif()">🔁 Refresh notifications</button>
   </div>
   <div class="modal-foot">
+    <button class="delete-btn" onclick="signOut()">Sign out</button>
     <button class="cancel-btn" onclick="closeNotifSettings()">Close</button>
   </div>
 </div>
@@ -829,8 +829,7 @@ function taskCardHTML(t, {showBacklog=false, showMove=false}) {
   const titleCls = t.completed ? 't-title done' : 't-title';
   let meta = `<span class="p-badge" style="background:${p.bg};color:${p.color}">${p.label}</span>`;
   if (t.type === 'recurring') meta += `<span class="rec-badge">🔄 every ${t.recurringDays}d</span>`;
-  if (t.completedAt) meta += `<span class="done-badge">done ${t.completedAt}</span>`;
-  const notesHTML = t.notes ? `<div class="t-notes">${escHtml(t.notes)}</div>` : '';
+  if (t.notes) meta += `<span class="done-badge">${escHtml(t.notes)}</span>`;
   return `<div class="t-card" id="card-${t.id}" style="border-left-color:${t.completed?'#d1d5db':p.dot}">
     <div class="t-main" onclick="editTask('${t.id}')">
       <button class="t-check" style="background:${checkBg};border-color:${p.dot}" onclick="event.stopPropagation();toggleTask('${t.id}')">${checkMark}</button>
@@ -1234,6 +1233,50 @@ function handleNotifUrlParams() {
     setTimeout(() => openDay(targetDay), 300);
   }, 1500);
 }
+
+// ─── SWIPE GESTURES (month, tab, and day-panel navigation) ───────────────────
+let touchStartX = 0, touchStartY = 0, touchMode = null, touchStartDay = null;
+const SWIPE_MIN_X = 55, SWIPE_MAX_Y = 45;
+
+document.addEventListener('touchstart', e => {
+  if (!e.touches || !e.touches.length) return;
+  const t = e.touches[0];
+  touchStartX = t.clientX; touchStartY = t.clientY;
+  touchMode = null;
+  const target = e.target;
+  if (document.getElementById('day-panel').classList.contains('open') && target.closest('#day-panel')) {
+    touchMode = 'day-panel';
+    touchStartDay = currentSelDay;
+    return;
+  }
+  if (target.closest('#search-panel') || target.closest('#task-modal') || target.closest('#notif-modal')) return;
+  if (target.closest('.cal-box')) touchMode = 'calendar-month';
+  else if (target.closest('#main')) touchMode = 'tab-swipe';
+});
+
+document.addEventListener('touchend', e => {
+  if (!touchMode || !e.changedTouches || !e.changedTouches.length) return;
+  const t = e.changedTouches[0];
+  const dx = t.clientX - touchStartX;
+  const dy = t.clientY - touchStartY;
+  if (Math.abs(dx) < SWIPE_MIN_X || Math.abs(dy) > SWIPE_MAX_Y) { touchMode = null; return; }
+
+  if (touchMode === 'calendar-month') {
+    if (dx < 0) nextMonth(); else prevMonth();
+  } else if (touchMode === 'tab-swipe') {
+    const order = ['calendar', 'backlog', 'search'];
+    const current = document.getElementById('search-panel').classList.contains('open') ? 'search' : currentView;
+    const i = order.indexOf(current);
+    const next = dx < 0 ? Math.min(i + 1, order.length - 1) : Math.max(i - 1, 0);
+    const targetView = order[next];
+    if (targetView === 'search') openSearch();
+    else { closeSearch(); switchView(targetView); }
+  } else if (touchMode === 'day-panel' && touchStartDay) {
+    const nextDay = addDays(touchStartDay, dx < 0 ? 1 : -1);
+    openDay(nextDay);
+  }
+  touchMode = null;
+});
 
 // ─── KEYBOARD ─────────────────────────────────────────────────────────────────
 document.addEventListener('keydown', e => {

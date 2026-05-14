@@ -48,7 +48,9 @@ self.addEventListener('message', e => {
   e.waitUntil((async () => {
     const existing = await self.registration.getNotifications();
     existing.forEach(n => {
-      if ((n.tag || '').startsWith('flowdo-summary-')) n.close();
+      const title = (n.title || '').toLowerCase();
+      const tag = (n.tag || '').toLowerCase();
+      if (tag.includes('flowdo') || title.startsWith('flowdo')) n.close();
     });
     await self.registration.showNotification(title, {
       body,
