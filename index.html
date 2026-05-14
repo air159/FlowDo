@@ -326,8 +326,8 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#1e3a5f!import
     </div>
     <button class="save-btn" id="notif-test-btn" style="align-self:flex-start;padding:8px 18px;font-size:13px" onclick="sendTestNotif()">🔁 Refresh notifications</button>
   </div>
-  <div class="modal-foot">
-    <button class="delete-btn" onclick="signOut()">Sign out</button>
+  <div class="modal-foot" style="justify-content:space-between">
+    <button class="delete-btn" style="margin-right:auto" onclick="signOut()">Sign out</button>
     <button class="cancel-btn" onclick="closeNotifSettings()">Close</button>
   </div>
 </div>
@@ -1249,13 +1249,15 @@ document.addEventListener('touchstart', e => {
   const t = e.touches[0];
   touchStartX = t.clientX; touchStartY = t.clientY;
   touchMode = null;
-  const target = e.target;
+  const target = (e.target && e.target.nodeType === 1) ? e.target : null;
+  if (!target) return;
   if (document.getElementById('day-panel').classList.contains('open') && target.closest('#day-panel')) {
     touchMode = 'day-panel';
     touchStartDay = currentSelDay;
     return;
   }
-  if (target.closest('#search-panel') || target.closest('#task-modal') || target.closest('#notif-modal')) return;
+  if (target.closest('#task-modal') || target.closest('#notif-modal')) return;
+  if (target.closest('#search-panel')) { touchMode = 'tab-swipe'; return; }
   if (target.closest('.cal-box')) touchMode = 'calendar-month';
   else if (target.closest('#main')) touchMode = 'tab-swipe';
 });
@@ -1273,7 +1275,7 @@ document.addEventListener('touchend', e => {
     const order = ['calendar', 'backlog', 'search'];
     const current = document.getElementById('search-panel').classList.contains('open') ? 'search' : currentView;
     const i = order.indexOf(current);
-    const next = dx < 0 ? Math.min(i + 1, order.length - 1) : Math.max(i - 1, 0);
+    const next = dx < 0 ? (i + 1) % order.length : (i - 1 + order.length) % order.length;
     const targetView = order[next];
     if (targetView === 'search') openSearch();
     else { closeSearch(); switchView(targetView); }
