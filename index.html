@@ -842,6 +842,7 @@ function taskCardHTML(t, {showBacklog=false, showMove=false}) {
       <div style="flex:1;min-width:0">
         <div class="${titleCls}">${escHtml(t.title)}</div>
         <div class="t-meta">${meta}</div>
+        ${notesHTML}
       </div>
     </div>
   </div>`;
