@@ -833,9 +833,13 @@ function taskCardHTML(t, {showBacklog=false, showMove=false}) {
   const checkBg = t.completed ? p.dot : 'transparent';
   const checkMark = t.completed ? `<span style="font-size:11px;color:#fff;font-weight:900">✓</span>` : '';
   const titleCls = t.completed ? 't-title done' : 't-title';
+  
   let meta = `<span class="p-badge" style="background:${p.bg};color:${p.color}">${p.label}</span>`;
   if (t.type === 'recurring') meta += `<span class="rec-badge">🔄 every ${t.recurringDays}d</span>`;
-  if (t.notes) meta += `<span class="done-badge">${escHtml(t.notes)}</span>`;
+  
+  // FIXED: Properly declare notesHTML so the app doesn't crash!
+  const notesHTML = t.notes ? `<div class="t-notes">${escHtml(t.notes)}</div>` : '';
+
   return `<div class="t-card" id="card-${t.id}" style="border-left-color:${t.completed?'#d1d5db':p.dot}">
     <div class="t-main" onclick="editTask('${t.id}')">
       <button class="t-check" style="background:${checkBg};border-color:${p.dot}" onclick="event.stopPropagation();toggleTask('${t.id}')">${checkMark}</button>
