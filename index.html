@@ -710,6 +710,11 @@ function renderCalendar() {
   </div></div>`;
 
   document.getElementById('view-calendar').innerHTML = html;
+  const calBox = document.querySelector('.cal-box');
+  if (calBox) {
+    calBox.addEventListener('touchstart', e => swipeStart('month', e), { passive: true });
+    calBox.addEventListener('touchend', swipeEnd, { passive: true });
+  }
   updateBacklogBadge();
 }
 
@@ -1240,51 +1245,44 @@ function handleNotifUrlParams() {
   }, 1500);
 }
 
-// ─── SWIPE GESTURES (month, tab, and day-panel navigation) ───────────────────
-let touchStartX = 0, touchStartY = 0, touchMode = null, touchStartDay = null;
-const SWIPE_MIN_X = 55, SWIPE_MAX_Y = 45;
+// ─── SWIPE GESTURES (scoped to avoid interfering with taps) ───────────────────
+let swipeState = null;
+const SWIPE_MIN_X = 65, SWIPE_MAX_Y = 45;
 
-document.addEventListener('touchstart', e => {
+function swipeStart(mode, e, day = null) {
   if (!e.touches || !e.touches.length) return;
   const t = e.touches[0];
-  touchStartX = t.clientX; touchStartY = t.clientY;
-  touchMode = null;
-  const target = (e.target && e.target.nodeType === 1) ? e.target : null;
-  if (!target) return;
-  if (document.getElementById('day-panel').classList.contains('open') && target.closest('#day-panel')) {
-    touchMode = 'day-panel';
-    touchStartDay = currentSelDay;
-    return;
-  }
-  if (target.closest('#task-modal') || target.closest('#notif-modal')) return;
-  if (target.closest('#search-panel')) { touchMode = 'tab-swipe'; return; }
-  if (target.closest('.cal-box')) touchMode = 'calendar-month';
-  else if (target.closest('#main')) touchMode = 'tab-swipe';
-});
-
-document.addEventListener('touchend', e => {
-  if (!touchMode || !e.changedTouches || !e.changedTouches.length) return;
+  swipeState = { mode, x: t.clientX, y: t.clientY, day };
+}
+function swipeEnd(e) {
+  if (!swipeState || !e.changedTouches || !e.changedTouches.length) return;
   const t = e.changedTouches[0];
-  const dx = t.clientX - touchStartX;
-  const dy = t.clientY - touchStartY;
-  if (Math.abs(dx) < SWIPE_MIN_X || Math.abs(dy) > SWIPE_MAX_Y) { touchMode = null; return; }
-
-  if (touchMode === 'calendar-month') {
-    if (dx < 0) nextMonth(); else prevMonth();
-  } else if (touchMode === 'tab-swipe') {
+  const dx = t.clientX - swipeState.x;
+  const dy = t.clientY - swipeState.y;
+  if (Math.abs(dx) < SWIPE_MIN_X || Math.abs(dy) > SWIPE_MAX_Y) { swipeState = null; return; }
+  if (swipeState.mode === 'month') (dx < 0 ? nextMonth() : prevMonth());
+  if (swipeState.mode === 'day' && swipeState.day) openDay(addDays(swipeState.day, dx < 0 ? 1 : -1));
+  if (swipeState.mode === 'tab') {
     const order = ['calendar', 'backlog', 'search'];
     const current = document.getElementById('search-panel').classList.contains('open') ? 'search' : currentView;
     const i = order.indexOf(current);
     const next = dx < 0 ? (i + 1) % order.length : (i - 1 + order.length) % order.length;
     const targetView = order[next];
-    if (targetView === 'search') openSearch();
-    else { closeSearch(); switchView(targetView); }
-  } else if (touchMode === 'day-panel' && touchStartDay) {
-    const nextDay = addDays(touchStartDay, dx < 0 ? 1 : -1);
-    openDay(nextDay);
+    if (targetView === 'search') openSearch(); else { closeSearch(); switchView(targetView); }
   }
-  touchMode = null;
-});
+  swipeState = null;
+}
+
+document.getElementById('main').addEventListener('touchstart', e => {
+  const target = e.target && e.target.nodeType === 1 ? e.target : null;
+  if (!target || target.closest('.cal-box')) return; // calendar area reserved for month swipe
+  swipeStart('tab', e);
+}, { passive: true });
+document.getElementById('main').addEventListener('touchend', swipeEnd, { passive: true });
+document.getElementById('search-panel').addEventListener('touchstart', e => swipeStart('tab', e), { passive: true });
+document.getElementById('search-panel').addEventListener('touchend', swipeEnd, { passive: true });
+document.getElementById('day-panel').addEventListener('touchstart', e => swipeStart('day', e, currentSelDay), { passive: true });
+document.getElementById('day-panel').addEventListener('touchend', swipeEnd, { passive: true });
 
 // ─── KEYBOARD ─────────────────────────────────────────────────────────────────
 document.addEventListener('keydown', e => {
