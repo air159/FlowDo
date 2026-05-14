@@ -160,15 +160,10 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#1e3a5f!import
 .p-badge{display:inline-block;padding:1px 8px;border-radius:8px;font-size:10px;font-weight:800;letter-spacing:.3px;}
 .rec-badge{font-size:10px;color:#64748b;background:#f1f5f9;padding:1px 7px;border-radius:8px;font-weight:700;}
 .done-badge{font-size:10px;color:#94a3b8;}
-.more-btn{width:28px;height:28px;border-radius:6px;border:1px solid #e2e8f0;background:#f8fafc;color:#64748b;font-size:10px;display:flex;align-items:center;justify-content:center;letter-spacing:2px;flex-shrink:0;}
-.t-expand{border-top:1px solid #f0ece4;background:#faf8f5;padding:10px 12px;}
-.t-notes{font-size:13px;color:#64748b;line-height:1.5;margin-bottom:8px;}
-.exp-acts{display:flex;gap:6px;flex-wrap:wrap;}
-.e-btn{padding:4px 10px;border-radius:7px;border:1px solid #e2e8f0;background:#fff;font-size:12px;font-weight:700;color:#374151;}
-.e-btn:hover{background:#f0f7ff;border-color:#1e3a5f;}
-.e-btn.danger{color:#dc2626;}
-.date-assign-row{display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap;}
-.date-assign-row input{padding:6px 10px;border-radius:7px;border:1px solid #e2e8f0;font-size:13px;background:#faf8f5;}
+.t-main{cursor:pointer;}
+.t-notes{font-size:13px;color:#64748b;line-height:1.5;margin-top:6px;}
+.delete-btn{padding:10px 20px;border-radius:10px;border:1px solid #fecaca;background:#fff5f5;color:#b91c1c;font-size:14px;font-weight:700;}
+.delete-btn:hover{background:#fee2e2;}
 
 /* DIVIDER */
 .section-divider{font-size:11px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;padding:10px 4px 4px;border-top:1px solid #f0ece4;margin-top:4px;flex-shrink:0;}
@@ -272,7 +267,7 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#1e3a5f!import
         <button class="tab-btn active" id="tab-cal" onclick="switchView('calendar')">📅 Calendar</button>
         <button class="tab-btn" id="tab-bl" onclick="switchView('backlog')">📦 Backlog <span class="tab-badge" id="bl-badge" style="display:none">0</span></button>
       </div>
-      <div id="user-avatar-wrap" onclick="toggleUserMenu()"></div>
+      <div id="user-avatar-wrap" onclick="openNotifSettings()"></div>
     </div>
   </header>
 
@@ -290,7 +285,6 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#1e3a5f!import
     <div id="menu-name"></div>
     <div class="user-menu-email" id="menu-email"></div>
   </div>
-  <button class="user-menu-btn" onclick="openNotifSettings()">🔔 Notification settings</button>
   <button class="user-menu-btn danger" onclick="signOut()">🚪 Sign out</button>
 </div>
 <div class="backdrop" id="user-menu-backdrop" style="display:none;z-index:399" onclick="closeUserMenu()"></div>
@@ -332,7 +326,8 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#1e3a5f!import
     </div>
     <button class="save-btn" id="notif-test-btn" style="align-self:flex-start;padding:8px 18px;font-size:13px" onclick="sendTestNotif()">🔁 Refresh notifications</button>
   </div>
-  <div class="modal-foot">
+  <div class="modal-foot" style="justify-content:space-between">
+    <button class="delete-btn" style="margin-right:auto" onclick="signOut()">Sign out</button>
     <button class="cancel-btn" onclick="closeNotifSettings()">Close</button>
   </div>
 </div>
@@ -429,9 +424,13 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#1e3a5f!import
       <label class="form-label">Notes (optional)</label>
       <textarea class="form-input" id="f-notes" style="height:72px;resize:vertical" placeholder="Extra details…"></textarea>
     </div>
-  <div class="modal-foot">
+  </div>
+  <div class="modal-foot" style="justify-content:space-between">
+    <button class="delete-btn" id="delete-btn" style="display:none" onclick="deleteEditingTask()">Delete</button>
+    <div style="display:flex;gap:10px">
     <button class="cancel-btn" onclick="closeForm()">Cancel</button>
     <button class="save-btn" id="save-btn" onclick="saveTask()" disabled>Add Task</button>
+    </div>
   </div>
 </div>
 
@@ -443,7 +442,7 @@ import { initializeApp }                              from 'https://www.gstatic.
 import { getAuth, GoogleAuthProvider, signInWithPopup,
          signOut as fbSignOut, onAuthStateChanged }   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import { getFirestore, collection, doc, setDoc,
-         deleteDoc, onSnapshot,
+         deleteDoc, updateDoc, onSnapshot,
          enableIndexedDbPersistence }                 from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 // ▼▼▼  PASTE YOUR FIREBASE CONFIG HERE  ▼▼▼
@@ -489,6 +488,9 @@ window._stopListening = () => { if (unsubscribeTasks) { unsubscribeTasks(); unsu
 
 window._saveTask = async (uid, task) => {
   await setDoc(doc(db, 'users', uid, 'tasks', task.id), task);
+};
+window._patchTask = async (uid, id, patch) => {
+  await updateDoc(doc(db, 'users', uid, 'tasks', id), patch);
 };
 
 window._deleteTask = async (uid, id) => {
@@ -559,7 +561,12 @@ function setSyncStatus(status) {
 }
 
 function signIn()  { window._fbSignIn().catch(e => alert('Sign-in failed: ' + e.message)); }
-function signOut() { closeUserMenu(); window._fbSignOut(); }
+function signOut() {
+  if (!confirm('Sign out of FlowDo?')) return;
+  closeUserMenu();
+  closeNotifSettings();
+  window._fbSignOut();
+}
 
 function toggleUserMenu() {
   document.getElementById('user-menu').classList.toggle('open');
@@ -573,6 +580,7 @@ function closeUserMenu() {
 
 // ─── TASK PERSISTENCE (Firebase instead of localStorage) ──────────────────────
 let tasks = [];
+const pendingToggleIds = new Set();
 
 async function fbSave(task) {
   if (!currentUser) return;
@@ -584,6 +592,11 @@ async function fbDelete(id) {
   if (!currentUser) return;
   setSyncStatus('syncing');
   try { await window._deleteTask(currentUser.uid, id); } catch(e) { setSyncStatus('error'); }
+}
+async function fbPatch(id, patch) {
+  if (!currentUser) return;
+  setSyncStatus('syncing');
+  try { await window._patchTask(currentUser.uid, id, patch); } catch(e) { setSyncStatus('error'); }
 }
 
 // ─── DATE UTILS ───────────────────────────────────────────────────────────────
@@ -697,6 +710,11 @@ function renderCalendar() {
   </div></div>`;
 
   document.getElementById('view-calendar').innerHTML = html;
+  const calBox = document.querySelector('.cal-box');
+  if (calBox) {
+    calBox.addEventListener('touchstart', e => swipeStart('month', e), { passive: true });
+    calBox.addEventListener('touchend', swipeEnd, { passive: true });
+  }
   updateBacklogBadge();
 }
 
@@ -708,6 +726,7 @@ function goToday()   { calDate = new Date(); renderCalendar(); openDay(todayDS()
 // ─── UNIFIED BACK-NAVIGATION (Android swipe / hardware back button) ──────────
 // Tracks which modal/panel is currently open so popstate knows what to close
 let _modalStack = []; // stack of close-functions
+let _ignoreNextPop = false;
 
 function _pushModal(closeFn) {
   history.pushState({ flowdoModal: true }, '');
@@ -715,12 +734,16 @@ function _pushModal(closeFn) {
 }
 
 function _popModal() {
-  // Called by the UI close buttons — remove our history state and pop the stack
-  _modalStack.pop();
-  if (history.state && history.state.flowdoModal) history.back();
+  const closeFn = _modalStack.pop();
+  if (closeFn) closeFn();
+  if (history.state && history.state.flowdoModal) {
+    _ignoreNextPop = true;
+    history.back();
+  }
 }
 
 window.addEventListener('popstate', () => {
+  if (_ignoreNextPop) { _ignoreNextPop = false; return; }
   // Android back swipe / hardware back hit — close whatever is on top
   const closeFn = _modalStack.pop();
   if (closeFn) closeFn();
@@ -817,30 +840,14 @@ function taskCardHTML(t, {showBacklog=false, showMove=false}) {
   const titleCls = t.completed ? 't-title done' : 't-title';
   let meta = `<span class="p-badge" style="background:${p.bg};color:${p.color}">${p.label}</span>`;
   if (t.type === 'recurring') meta += `<span class="rec-badge">🔄 every ${t.recurringDays}d</span>`;
-  if (t.completedAt) meta += `<span class="done-badge">done ${t.completedAt}</span>`;
-  let expandActs = `<button class="e-btn" onclick="editTask('${t.id}')">✏️ Edit</button>`;
-  if (showBacklog) expandActs += `<button class="e-btn" onclick="moveToBacklog('${t.id}')">📦 → Backlog</button>`;
-  if (showMove)    expandActs += `<button class="e-btn" onclick="showAssignDate('${t.id}')">📅 Assign to date</button>`;
-  expandActs += `<button class="e-btn danger" onclick="deleteTask('${t.id}')">🗑️ Delete</button>`;
-  const notesHTML = t.notes ? `<div class="t-notes">${escHtml(t.notes)}</div>` : '';
-  const assignRow = `<div class="date-assign-row" id="assign-${t.id}" style="display:none">
-    <input type="date" id="assign-date-${t.id}" value="${todayDS()}"/>
-    <button class="e-btn" style="background:#1e3a5f;color:#fff;border:none" onclick="doAssignDate('${t.id}')">Assign ✓</button>
-    <button class="e-btn" onclick="hideAssignDate('${t.id}')">Cancel</button>
-  </div>`;
+  if (t.notes) meta += `<span class="done-badge">${escHtml(t.notes)}</span>`;
   return `<div class="t-card" id="card-${t.id}" style="border-left-color:${t.completed?'#d1d5db':p.dot}">
-    <div class="t-main">
-      <button class="t-check" style="background:${checkBg};border-color:${p.dot}" onclick="toggleTask('${t.id}')">${checkMark}</button>
+    <div class="t-main" onclick="editTask('${t.id}')">
+      <button class="t-check" style="background:${checkBg};border-color:${p.dot}" onclick="event.stopPropagation();toggleTask('${t.id}')">${checkMark}</button>
       <div style="flex:1;min-width:0">
         <div class="${titleCls}">${escHtml(t.title)}</div>
         <div class="t-meta">${meta}</div>
       </div>
-      <button class="more-btn" onclick="toggleExpand('${t.id}')">•••</button>
-    </div>
-    <div class="t-expand" id="expand-${t.id}" style="display:none">
-      ${notesHTML}
-      <div class="exp-acts">${expandActs}</div>
-      ${assignRow}
     </div>
   </div>`;
 }
@@ -848,36 +855,42 @@ function taskCardHTML(t, {showBacklog=false, showMove=false}) {
 function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 // ─── TASK ACTIONS ─────────────────────────────────────────────────────────────
-function toggleExpand(id) {
-  const el = document.getElementById('expand-' + id);
-  el.style.display = el.style.display === 'none' ? '' : 'none';
-}
-
 async function toggleTask(id) {
-  const t = tasks.find(x => x.id === id);
-  if (!t) return;
-  if (!t.completed) {
-    t.completed = true; t.completedAt = todayDS();
-    await fbSave(t);
-    if (t.type === 'recurring' && t.recurringDays) {
-      const base = t.date || todayDS();
-      const childId = genId();
-      t.spawnedId = childId;
-      await fbSave(t);
-      const child = {id:childId, title:t.title, type:'recurring', date:addDays(base, t.recurringDays),
-        priority:t.priority, recurringDays:t.recurringDays, notes:t.notes||'',
-        autoReschedule: t.autoReschedule || false,
-        completed:false, completedAt:null, createdAt:new Date().toISOString()};
-      await fbSave(child);
+  if (pendingToggleIds.has(id)) return;
+  pendingToggleIds.add(id);
+  try {
+    const t = tasks.find(x => x.id === id);
+    if (!t) return;
+    if (!t.completed) {
+      t.completed = true; t.completedAt = t.date || todayDS();
+      await fbPatch(t.id, { completed: true, completedAt: t.completedAt });
+      if (t.type === 'recurring' && t.recurringDays) {
+        const base = t.date || todayDS();
+        const childDate = addDays(base, t.recurringDays);
+        const existingChild = tasks.find(x => x.parentRecurringId === t.id && x.date === childDate && x.type === 'recurring');
+        const childId = existingChild ? existingChild.id : genId();
+        t.spawnedId = childId;
+        await fbPatch(t.id, { spawnedId: childId });
+        if (!existingChild) {
+          const child = {id:childId, title:t.title, type:'recurring', date:childDate,
+            parentRecurringId:t.id,
+            priority:t.priority, recurringDays:t.recurringDays, notes:t.notes||'',
+            autoReschedule: t.autoReschedule || false,
+            completed:false, completedAt:null, createdAt:new Date().toISOString()};
+          await fbSave(child);
+        }
+      }
+    } else {
+      if (t.spawnedId) {
+        const child = tasks.find(x => x.id === t.spawnedId);
+        if (child && !child.completed) await fbDelete(child.id);
+        await fbPatch(t.id, { spawnedId: null });
+      }
+      t.completed = false; t.completedAt = null;
+      await fbPatch(t.id, { completed: false, completedAt: null });
     }
-  } else {
-    if (t.spawnedId) {
-      const child = tasks.find(x => x.id === t.spawnedId);
-      if (child && !child.completed) await fbDelete(child.id);
-      delete t.spawnedId;
-    }
-    t.completed = false; t.completedAt = null;
-    await fbSave(t);
+  } finally {
+    pendingToggleIds.delete(id);
   }
 }
 
@@ -940,12 +953,20 @@ function openForm(task, defaultDate) {
   const rd = task ? (task.recurringDays || 7) : 7;
   formRecDays = rd;
   document.getElementById('f-rec-days').value = rd;
+  document.getElementById('delete-btn').style.display = task ? '' : 'none';
   syncIntervalBtns();
   updateSaveBtn();
   document.getElementById('form-backdrop').style.display = '';
   document.getElementById('task-modal').style.display = '';
   _pushModal(_closeFormUI);
   setTimeout(() => document.getElementById('f-title').focus(), 100);
+}
+async function deleteEditingTask() {
+  if (!editTaskId) return;
+  if (!confirm('Delete this task? This cannot be undone.')) return;
+  const id = editTaskId;
+  closeForm();
+  await fbDelete(id);
 }
 
 function _closeFormUI() {
@@ -1021,11 +1042,16 @@ async function saveTask() {
 // ─── SEARCH ───────────────────────────────────────────────────────────────────
 function openSearch() {
   document.getElementById('search-panel').classList.add('open');
+  _pushModal(_closeSearchUI);
   setTimeout(() => document.getElementById('search-input').focus(), 100);
 }
-function closeSearch() {
+function _closeSearchUI() {
   document.getElementById('search-panel').classList.remove('open');
   document.getElementById('search-input').value = '';
+}
+function closeSearch() {
+  if (_modalStack.length && _modalStack[_modalStack.length-1] === _closeSearchUI) _popModal();
+  else _closeSearchUI();
 }
 function highlight(text, query) {
   if (!query) return escHtml(text);
@@ -1074,10 +1100,10 @@ async function runRescheduleCheck() {
   if (!currentUser) return;
   const td = todayDS();
   const overdue = tasks.filter(t =>
-    t.autoReschedule && !t.completed && t.date && t.date < td
+    t.autoReschedule && !t.completed && t.date && t.date < td && !pendingToggleIds.has(t.id)
   );
   if (overdue.length) {
-    for (const t of overdue) { t.date = td; await fbSave(t); }
+    for (const t of overdue) { t.date = td; await fbPatch(t.id, { date: td }); }
     const n = overdue.length;
     showToast(`🔁 ${n} overdue task${n > 1 ? 's' : ''} rescheduled to today`);
   }
@@ -1217,6 +1243,45 @@ function handleNotifUrlParams() {
     setTimeout(() => openDay(targetDay), 300);
   }, 1500);
 }
+
+// ─── SWIPE GESTURES (scoped to avoid interfering with taps) ───────────────────
+let swipeState = null;
+const SWIPE_MIN_X = 65, SWIPE_MAX_Y = 45;
+
+function swipeStart(mode, e, day = null) {
+  if (!e.touches || !e.touches.length) return;
+  const t = e.touches[0];
+  swipeState = { mode, x: t.clientX, y: t.clientY, day };
+}
+function swipeEnd(e) {
+  if (!swipeState || !e.changedTouches || !e.changedTouches.length) return;
+  const t = e.changedTouches[0];
+  const dx = t.clientX - swipeState.x;
+  const dy = t.clientY - swipeState.y;
+  if (Math.abs(dx) < SWIPE_MIN_X || Math.abs(dy) > SWIPE_MAX_Y) { swipeState = null; return; }
+  if (swipeState.mode === 'month') (dx < 0 ? nextMonth() : prevMonth());
+  if (swipeState.mode === 'day' && swipeState.day) openDay(addDays(swipeState.day, dx < 0 ? 1 : -1));
+  if (swipeState.mode === 'tab') {
+    const order = ['calendar', 'backlog', 'search'];
+    const current = document.getElementById('search-panel').classList.contains('open') ? 'search' : currentView;
+    const i = order.indexOf(current);
+    const next = dx < 0 ? (i + 1) % order.length : (i - 1 + order.length) % order.length;
+    const targetView = order[next];
+    if (targetView === 'search') openSearch(); else { closeSearch(); switchView(targetView); }
+  }
+  swipeState = null;
+}
+
+document.getElementById('main').addEventListener('touchstart', e => {
+  const target = e.target && e.target.nodeType === 1 ? e.target : null;
+  if (!target || target.closest('.cal-box')) return; // calendar area reserved for month swipe
+  swipeStart('tab', e);
+}, { passive: true });
+document.getElementById('main').addEventListener('touchend', swipeEnd, { passive: true });
+document.getElementById('search-panel').addEventListener('touchstart', e => swipeStart('tab', e), { passive: true });
+document.getElementById('search-panel').addEventListener('touchend', swipeEnd, { passive: true });
+document.getElementById('day-panel').addEventListener('touchstart', e => swipeStart('day', e, currentSelDay), { passive: true });
+document.getElementById('day-panel').addEventListener('touchend', swipeEnd, { passive: true });
 
 // ─── KEYBOARD ─────────────────────────────────────────────────────────────────
 document.addEventListener('keydown', e => {
