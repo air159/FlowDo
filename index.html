@@ -424,6 +424,7 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#1e3a5f!import
       <label class="form-label">Notes (optional)</label>
       <textarea class="form-input" id="f-notes" style="height:72px;resize:vertical" placeholder="Extra details…"></textarea>
     </div>
+  </div>
   <div class="modal-foot" style="justify-content:space-between">
     <button class="delete-btn" id="delete-btn" style="display:none" onclick="deleteEditingTask()">Delete</button>
     <div style="display:flex;gap:10px">
@@ -560,7 +561,12 @@ function setSyncStatus(status) {
 }
 
 function signIn()  { window._fbSignIn().catch(e => alert('Sign-in failed: ' + e.message)); }
-function signOut() { closeUserMenu(); window._fbSignOut(); }
+function signOut() {
+  if (!confirm('Sign out of FlowDo?')) return;
+  closeUserMenu();
+  closeNotifSettings();
+  window._fbSignOut();
+}
 
 function toggleUserMenu() {
   document.getElementById('user-menu').classList.toggle('open');
