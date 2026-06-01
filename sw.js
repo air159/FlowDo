@@ -43,20 +43,21 @@ self.addEventListener('message', e => {
   const lines = tasks.map(t => `${PRIO_ICON[t.priority] || '🟡'} ${t.title}`);
   const body = lines.join('\n');
 
-  const tag = isTest ? 'flowdo-summary-test' : 'flowdo-summary-' + dateStr;
+  // FIXED: Use one consistent tag for ALL notifications. 
+  // This forces the operating system to automatically replace the old one natively.
+  const tag = 'flowdo-summary';
 
   e.waitUntil((async () => {
+    // FIXED: Unconditionally close ANY existing notifications from this app.
+    // This will finally clear out that stubborn old notification Codex left behind.
     const existing = await self.registration.getNotifications();
-    existing.forEach(n => {
-      const title = (n.title || '').toLowerCase();
-      const tag = (n.tag || '').toLowerCase();
-      if (tag.includes('flowdo') || title.startsWith('flowdo')) n.close();
-    });
+    existing.forEach(n => n.close());
+
     await self.registration.showNotification(title, {
       body,
       icon:     '/icon-192.png',
       badge:    '/icon-192.png',
-      tag,                          // same tag each day — replaces instead of stacking
+      tag,      // The consistent tag that makes the magic happen
       renotify: false,
       data:     { dateStr, isTest: !!isTest },
       actions:  [{ action: 'open', title: '📅 Open today' }]

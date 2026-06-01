@@ -441,7 +441,7 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#1e3a5f!import
 import { initializeApp }                              from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getAuth, GoogleAuthProvider, signInWithPopup,
          signOut as fbSignOut, onAuthStateChanged }   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import { getFirestore, collection, doc, setDoc,
+import { getFirestore, collection, doc, setDoc, getDoc,
          deleteDoc, updateDoc, onSnapshot,
          enableIndexedDbPersistence }                 from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
@@ -485,6 +485,15 @@ window._listenTasks = (uid, onChange) => {
 };
 
 window._stopListening = () => { if (unsubscribeTasks) { unsubscribeTasks(); unsubscribeTasks = null; } };
+
+window._getTask = async (uid, id) => {
+  try {
+    const snap = await getDoc(doc(db, 'users', uid, 'tasks', id));
+    return snap.exists() ? snap.data() : null;
+  } catch (e) {
+    return null;
+  }
+};
 
 window._saveTask = async (uid, task) => {
   await setDoc(doc(db, 'users', uid, 'tasks', task.id), task);
@@ -1102,11 +1111,30 @@ async function runRescheduleCheck() {
   const overdue = tasks.filter(t =>
     t.autoReschedule && !t.completed && t.date && t.date < td && !pendingToggleIds.has(t.id)
   );
+  
   if (overdue.length) {
-    for (const t of overdue) { t.date = td; await fbPatch(t.id, { date: td }); }
-    const n = overdue.length;
-    showToast(`🔁 ${n} overdue task${n > 1 ? 's' : ''} rescheduled to today`);
+    let shiftedCount = 0;
+    for (const t of overdue) {
+      // Re-verify with the database to ensure we aren't using stale background-tab data
+      try {
+        const latest = await window._getTask(currentUser.uid, t.id);
+        
+        // Only shift if it is STILL incomplete in the absolute latest database state
+        if (latest && !latest.completed && latest.date && latest.date < td) {
+          t.date = td; 
+          await fbPatch(t.id, { date: td });
+          shiftedCount++;
+        }
+      } catch(e) {
+        console.error("Failed to verify task status:", e);
+      }
+    }
+    
+    if (shiftedCount > 0) {
+      showToast(`🔁 ${shiftedCount} overdue task${shiftedCount > 1 ? 's' : ''} rescheduled to today`);
+    }
   }
+  
   // Always await so notification sees the fully rescheduled task list
   await maybeFireAppOpenNotifs();
 }
