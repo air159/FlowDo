@@ -48,11 +48,12 @@ self.addEventListener('message', e => {
   const tag = 'flowdo-summary';
 
   e.waitUntil((async () => {
-    // FIXED: Unconditionally close ANY existing notifications from this app.
-    // This will finally clear out that stubborn old notification Codex left behind.
     const existing = await self.registration.getNotifications();
-    existing.forEach(n => n.close());
-
+    existing.forEach(n => {
+      const title = (n.title || '').toLowerCase();
+      const tag = (n.tag || '').toLowerCase();
+      if (tag.includes('flowdo') || title.startsWith('flowdo')) n.close();
+    });
     await self.registration.showNotification(title, {
       body,
       icon:     '/icon-192.png',

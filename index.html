@@ -337,7 +337,8 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#1e3a5f!import
   <div class="search-panel-hdr">
     <div class="search-input-wrap">
       <span class="search-icon">🔍</span>
-      <input id="search-input" type="text" placeholder="Search tasks…" oninput="runSearch()" autocomplete="off"/>
+      <input id="search-input" type="text" placeholder="Search tasks…" oninput="runSearch()" autocomplete="off" list="search-suggestions"/>
+      <datalist id="search-suggestions"></datalist>
     </div>
     <button class="search-close-btn" onclick="closeSearch()">✕</button>
   </div>
@@ -441,7 +442,7 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#1e3a5f!import
 import { initializeApp }                              from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getAuth, GoogleAuthProvider, signInWithPopup,
          signOut as fbSignOut, onAuthStateChanged }   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import { getFirestore, collection, doc, setDoc, getDoc,
+import { getFirestore, collection, doc, setDoc,
          deleteDoc, updateDoc, onSnapshot,
          enableIndexedDbPersistence }                 from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
@@ -719,6 +720,11 @@ function renderCalendar() {
   </div></div>`;
 
   document.getElementById('view-calendar').innerHTML = html;
+  const calBox = document.querySelector('.cal-box');
+  if (calBox) {
+    calBox.addEventListener('touchstart', e => swipeStart('month', e), { passive: true });
+    calBox.addEventListener('touchend', swipeEnd, { passive: true });
+  }
   updateBacklogBadge();
 }
 
@@ -845,10 +851,7 @@ function taskCardHTML(t, {showBacklog=false, showMove=false}) {
   
   let meta = `<span class="p-badge" style="background:${p.bg};color:${p.color}">${p.label}</span>`;
   if (t.type === 'recurring') meta += `<span class="rec-badge">🔄 every ${t.recurringDays}d</span>`;
-  
-  // FIXED: Properly declare notesHTML so the app doesn't crash!
-  const notesHTML = t.notes ? `<div class="t-notes">${escHtml(t.notes)}</div>` : '';
-
+  if (t.notes) meta += `<span class="done-badge">${escHtml(t.notes)}</span>`;
   return `<div class="t-card" id="card-${t.id}" style="border-left-color:${t.completed?'#d1d5db':p.dot}">
     <div class="t-main" onclick="editTask('${t.id}')">
       <button class="t-check" style="background:${checkBg};border-color:${p.dot}" onclick="event.stopPropagation();toggleTask('${t.id}')">${checkMark}</button>
@@ -1051,6 +1054,7 @@ async function saveTask() {
 // ─── SEARCH ───────────────────────────────────────────────────────────────────
 function openSearch() {
   document.getElementById('search-panel').classList.add('open');
+  renderSearchSuggestions(document.getElementById('search-input').value);
   _pushModal(_closeSearchUI);
   setTimeout(() => document.getElementById('search-input').focus(), 100);
 }
@@ -1068,31 +1072,75 @@ function highlight(text, query) {
   const safeQ = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   return safe.replace(new RegExp(safeQ, 'gi'), m => `<mark>${m}</mark>`);
 }
+function renderSearchSuggestions(query = '') {
+  const suggestionsEl = document.getElementById('search-suggestions');
+  if (!suggestionsEl) return;
+  const q = query.trim().toLowerCase();
+  const seen = new Set();
+  const suggestions = tasks
+    .filter(t => t.title && (!q || t.title.toLowerCase().includes(q)))
+    .sort((a,b) => {
+      if (a.completed !== b.completed) return a.completed ? 1 : -1;
+      if (a.date && b.date) return a.date > b.date ? 1 : -1;
+      if (a.date) return -1;
+      if (b.date) return 1;
+      return a.title.localeCompare(b.title);
+    })
+    .map(t => t.title)
+    .filter(title => {
+      const key = title.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, 10);
+  suggestionsEl.innerHTML = suggestions.map(title => `<option value="${escHtml(title)}"></option>`).join('');
+}
+function searchDateSort(a, b, newestFirst = false) {
+  if (a.date && b.date) return newestFirst ? (b.date > a.date ? 1 : b.date < a.date ? -1 : 0) : (a.date > b.date ? 1 : a.date < b.date ? -1 : 0);
+  if (a.date) return -1;
+  if (b.date) return 1;
+  return a.title.localeCompare(b.title);
+}
+function searchResultHTML(t, q) {
+  const pr = PRIO[t.priority] || PRIO.medium;
+  let dateChip = t.type === 'general' ? `<span class="src-type-chip">📦 Backlog</span>` : t.date ? `<span class="src-date-chip">📅 ${fmtDate(t.date)}</span>` : '';
+  if (t.type === 'recurring') dateChip += `<span class="src-type-chip">🔄 every ${t.recurringDays}d</span>`;
+  const clickAction = t.date ? `onSearchResultClick('${t.id}','${t.date}')` : `onSearchResultClickBacklog('${t.id}')`;
+  return `<div class="search-result-card" style="border-left-color:${t.completed?'#d1d5db':pr.dot}" onclick="${clickAction}">
+    <div class="${t.completed?'src-title done':'src-title'}">${highlight(t.title, q)}</div>
+    <div class="src-meta"><span class="p-badge" style="background:${pr.bg};color:${pr.color}">${pr.label}</span>${dateChip}${t.completed?'<span class="src-type-chip">✓ Done</span>':''}</div>
+    ${t.notes ? `<div class="src-notes">${highlight(t.notes, q)}</div>` : ''}
+  </div>`;
+}
 function runSearch() {
   const q = document.getElementById('search-input').value.trim().toLowerCase();
   const resultsEl = document.getElementById('search-results');
+  renderSearchSuggestions(q);
   if (!q) { resultsEl.innerHTML = `<div class="search-empty"><div class="search-empty-icon">🔍</div><div class="search-empty-title">Search your tasks</div><div class="search-empty-sub">Type anything to find tasks by name or notes</div></div>`; return; }
-  const matches = tasks.filter(t => t.title.toLowerCase().includes(q) || (t.notes && t.notes.toLowerCase().includes(q)))
-    .sort((a,b) => { if (a.completed !== b.completed) return a.completed ? 1 : -1; if (a.date && b.date) return a.date > b.date ? 1 : -1; if (a.date) return -1; if (b.date) return 1; return 0; });
+  const matches = tasks.filter(t => t.title.toLowerCase().includes(q) || (t.notes && t.notes.toLowerCase().includes(q)));
   if (matches.length === 0) { resultsEl.innerHTML = `<div class="search-empty"><div class="search-empty-icon">🤷</div><div class="search-empty-title">No results for "${escHtml(q)}"</div><div class="search-empty-sub">Try a different search term</div></div>`; return; }
+  const pending = matches.filter(t => !t.completed).sort((a,b) => searchDateSort(a, b, false));
+  const completed = matches.filter(t => t.completed).sort((a,b) => searchDateSort(a, b, true));
   let html = `<div class="search-count">${matches.length} result${matches.length !== 1 ? 's' : ''}</div>`;
-  html += matches.map(t => {
-    const pr = PRIO[t.priority] || PRIO.medium;
-    let dateChip = t.type === 'general' ? `<span class="src-type-chip">📦 Backlog</span>` : t.date ? `<span class="src-date-chip">📅 ${fmtDate(t.date)}</span>` : '';
-    if (t.type === 'recurring') dateChip += `<span class="src-type-chip">🔄 every ${t.recurringDays}d</span>`;
-    const clickAction = t.date ? `onSearchResultClick('${t.id}','${t.date}')` : `onSearchResultClickBacklog('${t.id}')`;
-    return `<div class="search-result-card" style="border-left-color:${t.completed?'#d1d5db':pr.dot}" onclick="${clickAction}">
-      <div class="${t.completed?'src-title done':'src-title'}">${highlight(t.title, q)}</div>
-      <div class="src-meta"><span class="p-badge" style="background:${pr.bg};color:${pr.color}">${pr.label}</span>${dateChip}${t.completed?'<span class="src-type-chip">✓ Done</span>':''}</div>
-      ${t.notes ? `<div class="src-notes">${highlight(t.notes, q)}</div>` : ''}
-    </div>`;
-  }).join('');
+  if (pending.length) html += `<div class="section-divider">To do</div>` + pending.map(t => searchResultHTML(t, q)).join('');
+  if (completed.length) html += `<div class="section-divider">✓ Completed</div>` + completed.map(t => searchResultHTML(t, q)).join('');
   resultsEl.innerHTML = html;
 }
 function onSearchResultClick(id, date) {
-  closeSearch(); calDate = new Date(date + 'T12:00:00'); switchView('calendar'); setTimeout(() => openDay(date), 50);
+  closeSearch();
+  calDate = new Date(date + 'T12:00:00');
+  switchView('calendar');
+  setTimeout(() => {
+    openDay(date);
+    setTimeout(() => editTask(id), 80);
+  }, 50);
 }
-function onSearchResultClickBacklog(id) { closeSearch(); switchView('backlog'); }
+function onSearchResultClickBacklog(id) {
+  closeSearch();
+  switchView('backlog');
+  setTimeout(() => editTask(id), 80);
+}
 
 // ─── TOAST ────────────────────────────────────────────────────────────────────
 let toastTimer = null;
@@ -1113,26 +1161,9 @@ async function runRescheduleCheck() {
   );
   
   if (overdue.length) {
-    let shiftedCount = 0;
-    for (const t of overdue) {
-      // Re-verify with the database to ensure we aren't using stale background-tab data
-      try {
-        const latest = await window._getTask(currentUser.uid, t.id);
-        
-        // Only shift if it is STILL incomplete in the absolute latest database state
-        if (latest && !latest.completed && latest.date && latest.date < td) {
-          t.date = td; 
-          await fbPatch(t.id, { date: td });
-          shiftedCount++;
-        }
-      } catch(e) {
-        console.error("Failed to verify task status:", e);
-      }
-    }
-    
-    if (shiftedCount > 0) {
-      showToast(`🔁 ${shiftedCount} overdue task${shiftedCount > 1 ? 's' : ''} rescheduled to today`);
-    }
+    for (const t of overdue) { t.date = td; await fbPatch(t.id, { date: td }); }
+    const n = overdue.length;
+    showToast(`🔁 ${n} overdue task${n > 1 ? 's' : ''} rescheduled to today`);
   }
   
   // Always await so notification sees the fully rescheduled task list
@@ -1272,51 +1303,44 @@ function handleNotifUrlParams() {
   }, 1500);
 }
 
-// ─── SWIPE GESTURES (month, tab, and day-panel navigation) ───────────────────
-let touchStartX = 0, touchStartY = 0, touchMode = null, touchStartDay = null;
-const SWIPE_MIN_X = 55, SWIPE_MAX_Y = 45;
+// ─── SWIPE GESTURES (scoped to avoid interfering with taps) ───────────────────
+let swipeState = null;
+const SWIPE_MIN_X = 65, SWIPE_MAX_Y = 45;
 
-document.addEventListener('touchstart', e => {
+function swipeStart(mode, e, day = null) {
   if (!e.touches || !e.touches.length) return;
   const t = e.touches[0];
-  touchStartX = t.clientX; touchStartY = t.clientY;
-  touchMode = null;
-  const target = (e.target && e.target.nodeType === 1) ? e.target : null;
-  if (!target) return;
-  if (document.getElementById('day-panel').classList.contains('open') && target.closest('#day-panel')) {
-    touchMode = 'day-panel';
-    touchStartDay = currentSelDay;
-    return;
-  }
-  if (target.closest('#task-modal') || target.closest('#notif-modal')) return;
-  if (target.closest('#search-panel')) { touchMode = 'tab-swipe'; return; }
-  if (target.closest('.cal-box')) touchMode = 'calendar-month';
-  else if (target.closest('#main')) touchMode = 'tab-swipe';
-});
-
-document.addEventListener('touchend', e => {
-  if (!touchMode || !e.changedTouches || !e.changedTouches.length) return;
+  swipeState = { mode, x: t.clientX, y: t.clientY, day };
+}
+function swipeEnd(e) {
+  if (!swipeState || !e.changedTouches || !e.changedTouches.length) return;
   const t = e.changedTouches[0];
-  const dx = t.clientX - touchStartX;
-  const dy = t.clientY - touchStartY;
-  if (Math.abs(dx) < SWIPE_MIN_X || Math.abs(dy) > SWIPE_MAX_Y) { touchMode = null; return; }
-
-  if (touchMode === 'calendar-month') {
-    if (dx < 0) nextMonth(); else prevMonth();
-  } else if (touchMode === 'tab-swipe') {
+  const dx = t.clientX - swipeState.x;
+  const dy = t.clientY - swipeState.y;
+  if (Math.abs(dx) < SWIPE_MIN_X || Math.abs(dy) > SWIPE_MAX_Y) { swipeState = null; return; }
+  if (swipeState.mode === 'month') (dx < 0 ? nextMonth() : prevMonth());
+  if (swipeState.mode === 'day' && swipeState.day) openDay(addDays(swipeState.day, dx < 0 ? 1 : -1));
+  if (swipeState.mode === 'tab') {
     const order = ['calendar', 'backlog', 'search'];
     const current = document.getElementById('search-panel').classList.contains('open') ? 'search' : currentView;
     const i = order.indexOf(current);
     const next = dx < 0 ? (i + 1) % order.length : (i - 1 + order.length) % order.length;
     const targetView = order[next];
-    if (targetView === 'search') openSearch();
-    else { closeSearch(); switchView(targetView); }
-  } else if (touchMode === 'day-panel' && touchStartDay) {
-    const nextDay = addDays(touchStartDay, dx < 0 ? 1 : -1);
-    openDay(nextDay);
+    if (targetView === 'search') openSearch(); else { closeSearch(); switchView(targetView); }
   }
-  touchMode = null;
-});
+  swipeState = null;
+}
+
+document.getElementById('main').addEventListener('touchstart', e => {
+  const target = e.target && e.target.nodeType === 1 ? e.target : null;
+  if (!target || target.closest('.cal-box')) return; // calendar area reserved for month swipe
+  swipeStart('tab', e);
+}, { passive: true });
+document.getElementById('main').addEventListener('touchend', swipeEnd, { passive: true });
+document.getElementById('search-panel').addEventListener('touchstart', e => swipeStart('tab', e), { passive: true });
+document.getElementById('search-panel').addEventListener('touchend', swipeEnd, { passive: true });
+document.getElementById('day-panel').addEventListener('touchstart', e => swipeStart('day', e, currentSelDay), { passive: true });
+document.getElementById('day-panel').addEventListener('touchend', swipeEnd, { passive: true });
 
 // ─── KEYBOARD ─────────────────────────────────────────────────────────────────
 document.addEventListener('keydown', e => {
