@@ -9,6 +9,10 @@
 <title>FlowDo — Task Calendar</title>
 <link rel="manifest" href="manifest.json"/>
 <link rel="apple-touch-icon" href="icon-192.png"/>
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin/>
+<link rel="preconnect" href="https://www.googleapis.com" crossorigin/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -382,7 +386,8 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#1e3a5f!import
   <div class="modal-body">
     <div class="form-group">
       <label class="form-label">Task name *</label>
-      <input class="form-input" id="f-title" placeholder="What needs to be done?" oninput="updateSaveBtn()"/>
+      <input class="form-input" id="f-title" placeholder="What needs to be done?" oninput="updateSaveBtn();renderTaskTitleSuggestions(this.value)" autocomplete="off" list="task-title-suggestions"/>
+      <datalist id="task-title-suggestions"></datalist>
     </div>
     <div class="form-group">
       <label class="form-label">Task type</label>
@@ -959,6 +964,7 @@ function openForm(task, defaultDate) {
   document.getElementById('modal-title').textContent = task ? '✏️ Edit Task' : '＋ New Task';
   document.getElementById('save-btn').textContent = task ? 'Save Changes' : 'Add Task';
   document.getElementById('f-title').value = task ? task.title : '';
+  renderTaskTitleSuggestions(task ? task.title : '');
   document.getElementById('f-notes').value = task ? (task.notes || '') : '';
   document.getElementById('f-date').value = task ? (task.date || defaultDate || todayDS()) : (defaultDate || todayDS());
   const type = task ? task.type : (defaultDate ? 'daily' : 'general');
@@ -1093,6 +1099,25 @@ function renderSearchSuggestions(query = '') {
       if (b.date) return 1;
       return a.title.localeCompare(b.title);
     })
+    .map(t => t.title)
+    .filter(title => {
+      const key = title.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, 10);
+  suggestionsEl.innerHTML = suggestions.map(title => `<option value="${escHtml(title)}"></option>`).join('');
+}
+function renderTaskTitleSuggestions(query = '') {
+  const suggestionsEl = document.getElementById('task-title-suggestions');
+  if (!suggestionsEl) return;
+  const q = query.trim().toLowerCase();
+  const currentId = editTaskId;
+  const seen = new Set();
+  const suggestions = tasks
+    .filter(t => t.id !== currentId && t.title && (!q || t.title.toLowerCase().includes(q)))
+    .sort((a,b) => a.title.localeCompare(b.title, undefined, { sensitivity:'base' }))
     .map(t => t.title)
     .filter(title => {
       const key = title.toLowerCase();
