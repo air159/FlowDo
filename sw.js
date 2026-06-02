@@ -1,4 +1,4 @@
-const CACHE  = 'flowdo-v10';
+const CACHE  = 'flowdo-v11';
 const ASSETS = ['/', '/index.html', '/manifest.json', '/icon-192.png', '/icon-512.png'];
 
 self.addEventListener('install', e => {
@@ -45,8 +45,14 @@ self.addEventListener('message', e => {
 
   const tag = isTest ? 'flowdo-summary-test' : 'flowdo-summary-' + dateStr;
 
-  e.waitUntil(
-    self.registration.showNotification(title, {
+  e.waitUntil((async () => {
+    const existing = await self.registration.getNotifications();
+    existing.forEach(n => {
+      const title = (n.title || '').toLowerCase();
+      const tag = (n.tag || '').toLowerCase();
+      if (tag.includes('flowdo') || title.startsWith('flowdo')) n.close();
+    });
+    await self.registration.showNotification(title, {
       body,
       icon:     '/icon-192.png',
       badge:    '/icon-192.png',
@@ -54,8 +60,8 @@ self.addEventListener('message', e => {
       renotify: false,
       data:     { dateStr, isTest: !!isTest },
       actions:  [{ action: 'open', title: '📅 Open today' }]
-    })
-  );
+    });
+  })());
 });
 
 // ── Notification tap ──────────────────────────────────────────────────────────
