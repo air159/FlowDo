@@ -1,8 +1,28 @@
-const CACHE  = 'flowdo-v11';
-const ASSETS = ['/', '/index.html', '/manifest.json', '/icon-192.png', '/icon-512.png'];
+const CACHE  = 'flowdo-v12';
+const ASSETS = [
+  '/',
+  '/index.html',
+  '/manifest.json',
+  '/icon-192.png',
+  '/icon-512.png',
+  'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js',
+  'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js',
+  'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js',
+  'https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap'
+];
+const CACHEABLE_ORIGINS = new Set([
+  location.origin,
+  'https://www.gstatic.com',
+  'https://fonts.googleapis.com',
+  'https://fonts.gstatic.com'
+]);
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).catch(() => {}));
+  e.waitUntil(
+    caches.open(CACHE).then(cache =>
+      Promise.all(ASSETS.map(asset => cache.add(asset).catch(() => {})))
+    )
+  );
   self.skipWaiting();
 });
 
@@ -18,13 +38,15 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
   const url = new URL(e.request.url);
-  if (url.origin !== location.origin) return;
+  if (!CACHEABLE_ORIGINS.has(url.origin)) return;
   e.respondWith(
     caches.match(e.request).then(cached => {
       const network = fetch(e.request).then(res => {
-        if (res.ok) caches.open(CACHE).then(c => c.put(e.request, res.clone()));
+        if (res.ok || res.type === 'opaque') {
+          caches.open(CACHE).then(c => c.put(e.request, res.clone()));
+        }
         return res;
-      });
+      }).catch(() => cached);
       return cached || network;
     })
   );

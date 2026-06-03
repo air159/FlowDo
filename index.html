@@ -283,6 +283,14 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#1e3a5f!import
   <button id="fab" onclick="openForm(null, currentSelDay || todayDS())">+</button>
 </div>
 
+<script>
+if (localStorage.getItem('flowdo_was_logged_in') === 'true') {
+  document.getElementById('loading-screen').style.display = 'none';
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app').style.display = '';
+}
+</script>
+
 <!-- User menu -->
 <div id="user-menu">
   <div class="user-menu-name">
@@ -525,6 +533,7 @@ window.onAuthStateChange = function(user) {
   document.getElementById('loading-screen').style.display = 'none';
   if (user) {
     currentUser = user;
+    localStorage.setItem('flowdo_was_logged_in', 'true');
     document.getElementById('auth-screen').style.display = 'none';
     document.getElementById('app').style.display = '';
     renderUserAvatar(user);
@@ -549,6 +558,7 @@ window.onAuthStateChange = function(user) {
     handleNotifUrlParams();
   } else {
     currentUser = null;
+    localStorage.removeItem('flowdo_was_logged_in');
     window._stopListening();
     document.getElementById('auth-screen').style.display = 'flex';
     document.getElementById('app').style.display = 'none';
@@ -578,6 +588,7 @@ function setSyncStatus(status) {
 function signIn()  { window._fbSignIn().catch(e => alert('Sign-in failed: ' + e.message)); }
 function signOut() {
   if (!confirm('Sign out of FlowDo?')) return;
+  localStorage.removeItem('flowdo_was_logged_in');
   closeUserMenu();
   closeNotifSettings();
   window._fbSignOut();
