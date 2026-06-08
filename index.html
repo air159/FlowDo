@@ -500,6 +500,15 @@ window._listenTasks = (uid, onChange) => {
 
 window._stopListening = () => { if (unsubscribeTasks) { unsubscribeTasks(); unsubscribeTasks = null; } };
 
+window._getTask = async (uid, id) => {
+  try {
+    const snap = await getDoc(doc(db, 'users', uid, 'tasks', id));
+    return snap.exists() ? snap.data() : null;
+  } catch (e) {
+    return null;
+  }
+};
+
 window._saveTask = async (uid, task) => {
   await setDoc(doc(db, 'users', uid, 'tasks', task.id), task);
 };
@@ -860,6 +869,7 @@ function taskCardHTML(t, {showBacklog=false, showMove=false}) {
   const checkBg = t.completed ? p.dot : 'transparent';
   const checkMark = t.completed ? `<span style="font-size:11px;color:#fff;font-weight:900">✓</span>` : '';
   const titleCls = t.completed ? 't-title done' : 't-title';
+  
   let meta = `<span class="p-badge" style="background:${p.bg};color:${p.color}">${p.label}</span>`;
   if (t.type === 'recurring') meta += `<span class="rec-badge">🔄 every ${t.recurringDays}d</span>`;
   const notesHTML = t.notes ? `<div class="t-notes">${escHtml(t.notes)}</div>` : '';
@@ -1194,11 +1204,13 @@ async function runRescheduleCheck() {
   const overdue = tasks.filter(t =>
     t.autoReschedule && !t.completed && t.date && t.date < td && !pendingToggleIds.has(t.id)
   );
+  
   if (overdue.length) {
     for (const t of overdue) { t.date = td; await fbPatch(t.id, { date: td }); }
     const n = overdue.length;
     showToast(`🔁 ${n} overdue task${n > 1 ? 's' : ''} rescheduled to today`);
   }
+  
   // Always await so notification sees the fully rescheduled task list
   await maybeFireAppOpenNotifs();
 }
