@@ -542,6 +542,7 @@ window.onAuthStateChange = function(user) {
     window._listenTasks(user.uid, (docs, err) => {
       if (err) { setSyncStatus('error'); return; }
       tasks = docs || [];
+      localStorage.setItem('flowdo_cached_tasks', JSON.stringify(tasks));
       setSyncStatus('synced');
       rerender();
       // Fire on the first successful load after a full page open
@@ -589,6 +590,7 @@ function signIn()  { window._fbSignIn().catch(e => alert('Sign-in failed: ' + e.
 function signOut() {
   if (!confirm('Sign out of FlowDo?')) return;
   localStorage.removeItem('flowdo_was_logged_in');
+  localStorage.removeItem('flowdo_cached_tasks');
   closeUserMenu();
   closeNotifSettings();
   window._fbSignOut();
@@ -605,7 +607,7 @@ function closeUserMenu() {
 }
 
 // ─── TASK PERSISTENCE (Firebase instead of localStorage) ──────────────────────
-let tasks = [];
+let tasks = JSON.parse(localStorage.getItem('flowdo_cached_tasks') || '[]');
 const pendingToggleIds = new Set();
 
 async function fbSave(task) {
@@ -1395,6 +1397,10 @@ document.addEventListener('keydown', e => {
     if (document.activeElement.tagName !== 'TEXTAREA') saveTask();
   }
 });
+
+if (localStorage.getItem('flowdo_was_logged_in') === 'true') {
+  rerender();
+}
 </script>
 </body>
 </html>
