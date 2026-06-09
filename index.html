@@ -416,6 +416,7 @@ if (localStorage.getItem('flowdo_was_logged_in') === 'true') {
         <button class="int-btn" onclick="setInterval(2)">Every 2d</button>
         <button class="int-btn active" onclick="setInterval(7)">Weekly</button>
         <button class="int-btn" onclick="setInterval(14)">Bi-weekly</button>
+        <button class="int-btn" onclick="setInterval(21)">Tri-weekly</button>
         <button class="int-btn" onclick="setInterval(30)">Monthly</button>
       </div>
       <div class="custom-days-row">
@@ -846,7 +847,7 @@ function renderPanelTasks(ds) {
 
 // ─── BACKLOG ──────────────────────────────────────────────────────────────────
 function renderBacklog() {
-  const bl = tasks.filter(t => t.type === 'general').sort((a,b) => P_ORDER.indexOf(a.priority)-P_ORDER.indexOf(b.priority));
+  const bl = tasks.filter(t => t.type === 'general').sort(taskPanelSort);
   const pending = bl.filter(t => !t.completed), done = bl.filter(t => t.completed);
   let inner = '';
   if (pending.length === 0 && done.length === 0) {
@@ -993,7 +994,13 @@ function openForm(task, defaultDate) {
   document.getElementById('form-backdrop').style.display = '';
   document.getElementById('task-modal').style.display = '';
   _pushModal(_closeFormUI);
-  setTimeout(() => document.getElementById('f-title').focus(), 100);
+}
+async function deleteEditingTask() {
+  if (!editTaskId) return;
+  if (!confirm('Delete this task? This cannot be undone.')) return;
+  const id = editTaskId;
+  closeForm();
+  await fbDelete(id);
 }
 async function deleteEditingTask() {
   if (!editTaskId) return;
@@ -1046,7 +1053,7 @@ function setInterval(d) { formRecDays = d; document.getElementById('f-rec-days')
 function syncIntervalBtns() {
   const d = parseInt(document.getElementById('f-rec-days').value) || 1;
   formRecDays = d;
-  const presets = [1,2,7,14,30];
+  const presets = [1,2,7,14,21,30];
   document.querySelectorAll('#interval-btns .int-btn').forEach((btn,i) => {
     btn.className = 'int-btn' + (presets[i] === d ? ' active' : '');
   });
