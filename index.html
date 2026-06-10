@@ -481,6 +481,7 @@ const provider = new GoogleAuthProvider();
 enableIndexedDbPersistence(db).catch(() => {});
 
 let unsubscribeTasks = null;
+let unsubscribeSettings = null;
 
 // Expose helpers to global scope for the main script below
 window._fbSignIn = () => signInWithPopup(auth, provider);
@@ -499,7 +500,19 @@ window._listenTasks = (uid, onChange) => {
   );
 };
 
-window._stopListening = () => { if (unsubscribeTasks) { unsubscribeTasks(); unsubscribeTasks = null; } };
+window._listenNotifSettings = (uid, onChange) => {
+  if (unsubscribeSettings) unsubscribeSettings();
+  const ref = doc(db, 'users', uid, 'settings', 'notifications');
+  unsubscribeSettings = onSnapshot(ref,
+    snap => onChange(snap.exists() ? snap.data() : {}, null),
+    err => onChange(null, err)
+  );
+};
+
+window._stopListening = () => {
+  if (unsubscribeTasks) { unsubscribeTasks(); unsubscribeTasks = null; }
+  if (unsubscribeSettings) { unsubscribeSettings(); unsubscribeSettings = null; }
+};
 
 window._getTask = async (uid, id) => {
   try {
@@ -515,6 +528,9 @@ window._saveTask = async (uid, task) => {
 };
 window._patchTask = async (uid, id, patch) => {
   await updateDoc(doc(db, 'users', uid, 'tasks', id), patch);
+};
+window._saveNotifHour = async (uid, hour) => {
+  await setDoc(doc(db, 'users', uid, 'settings', 'notifications'), { hour }, { merge: true });
 };
 
 window._deleteTask = async (uid, id) => {
@@ -550,6 +566,17 @@ window.onAuthStateChange = function(user) {
       if (!initialCheckDone) {
         initialCheckDone = true;
         setTimeout(runRescheduleCheck, 600);
+      }
+    });
+    window._listenNotifSettings(user.uid, (settings, err) => {
+      if (err) return;
+      if (settings && settings.hour !== undefined) {
+        localStorage.setItem(NOTIF_HOUR_KEY, String(settings.hour));
+        const hourEl = document.getElementById('notif-hour');
+        if (hourEl) hourEl.value = notifHour();
+        rerender();
+      } else {
+        window._saveNotifHour(user.uid, notifHour()).catch(() => {});
       }
     });
     // Register service worker for offline support and notification delivery
@@ -994,13 +1021,7 @@ function openForm(task, defaultDate) {
   document.getElementById('form-backdrop').style.display = '';
   document.getElementById('task-modal').style.display = '';
   _pushModal(_closeFormUI);
-}
-async function deleteEditingTask() {
-  if (!editTaskId) return;
-  if (!confirm('Delete this task? This cannot be undone.')) return;
-  const id = editTaskId;
-  closeForm();
-  await fbDelete(id);
+  if (!task) setTimeout(() => document.getElementById('f-title').focus(), 100);
 }
 async function deleteEditingTask() {
   if (!editTaskId) return;
@@ -1283,7 +1304,9 @@ function closeNotifSettings() {
 
 function saveNotifSettings() {
   const enabled = document.getElementById('notif-enabled').checked;
-  localStorage.setItem(NOTIF_HOUR_KEY, document.getElementById('notif-hour').value);
+  const hour = document.getElementById('notif-hour').value;
+  localStorage.setItem(NOTIF_HOUR_KEY, hour);
+  if (currentUser) window._saveNotifHour(currentUser.uid, parseInt(hour)).catch(() => {});
   if (enabled && Notification.permission !== 'granted') {
     Notification.requestPermission().then(perm => {
       const granted = perm === 'granted';
