@@ -347,10 +347,10 @@ if (localStorage.getItem('flowdo_was_logged_in') === 'true') {
 <!-- Search Panel -->
 <div id="search-panel">
   <div class="search-panel-hdr">
-    <div class="search-input-wrap">
+    <div class="search-input-wrap" style="position:relative">
       <span class="search-icon">🔍</span>
-      <input id="search-input" type="text" placeholder="Search tasks…" oninput="runSearch()" autocomplete="off" list="search-suggestions"/>
-      <datalist id="search-suggestions"></datalist>
+      <input id="search-input" type="text" placeholder="Search tasks…" oninput="runSearch();renderSearchSuggestions(this.value)" onfocus="renderSearchSuggestions(this.value)" autocomplete="off" />
+      <div id="search-suggestions-dropdown" style="display:none; position:absolute; top:100%; left:0; right:0; background:#fff; border:1px solid #e2e8f0; border-radius:8px; box-shadow:0 4px 16px rgba(0,0,0,.15); max-height:180px; overflow-y:auto; z-index:500; margin-top:4px;"></div>
     </div>
     <button class="search-close-btn" onclick="closeSearch()">✕</button>
   </div>
@@ -392,10 +392,10 @@ if (localStorage.getItem('flowdo_was_logged_in') === 'true') {
     <button class="x-btn" onclick="closeForm()">✕</button>
   </div>
   <div class="modal-body">
-    <div class="form-group">
+    <div class="form-group" style="position:relative">
       <label class="form-label">Task name *</label>
-      <input class="form-input" id="f-title" placeholder="What needs to be done?" oninput="updateSaveBtn();renderTaskTitleSuggestions(this.value)" autocomplete="off" list="task-title-suggestions"/>
-      <datalist id="task-title-suggestions"></datalist>
+      <input class="form-input" id="f-title" placeholder="What needs to be done?" oninput="updateSaveBtn();renderTaskTitleSuggestions(this.value)" onfocus="renderTaskTitleSuggestions(this.value)" autocomplete="off" />
+      <div id="task-title-dropdown" style="display:none; position:absolute; top:100%; left:0; right:0; background:#fff; border:1px solid #e2e8f0; border-radius:8px; box-shadow:0 4px 16px rgba(0,0,0,.15); max-height:180px; overflow-y:auto; z-index:500; margin-top:4px;"></div>
     </div>
     <div class="form-group">
       <label class="form-label">Task type</label>
@@ -449,6 +449,8 @@ if (localStorage.getItem('flowdo_was_logged_in') === 'true') {
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
 <!-- ═══════════════════════════════════════════════════════════════════
      FIREBASE INIT  ─  Paste your config below, then save & re-upload
      ═══════════════════════════════════════════════════════════════════ -->
@@ -456,7 +458,7 @@ if (localStorage.getItem('flowdo_was_logged_in') === 'true') {
 import { initializeApp }                              from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getAuth, GoogleAuthProvider, signInWithPopup,
          signOut as fbSignOut, onAuthStateChanged }   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import { getFirestore, collection, doc, setDoc,
+import { getFirestore, collection, doc, setDoc, getDoc,
          deleteDoc, updateDoc, onSnapshot,
          enableIndexedDbPersistence }                 from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
@@ -915,6 +917,35 @@ function taskCardHTML(t, {showBacklog=false, showMove=false}) {
 
 function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
+// ─── DOPAMINE CONFETTI ────────────────────────────────────────────────────────
+function triggerDopamineHit(id) {
+  // Find the specific task card and its checkbox
+  const card = document.getElementById(`card-${id}`);
+  if (!card) return;
+  const btn = card.querySelector('.t-check');
+  if (!btn) return;
+
+  // Calculate exactly where the checkbox is on the screen
+  const rect = btn.getBoundingClientRect();
+  const x = (rect.left + rect.width / 2) / window.innerWidth;
+  const y = (rect.top + rect.height / 2) / window.innerHeight;
+
+  // Fire the confetti!
+  confetti({
+    particleCount: 55,          // A satisfying but quick burst
+    spread: 70,                 // How wide the burst goes
+    origin: { x: x, y: y },     // Bursts exactly from the checkbox
+    colors: ['#1e3a5f', '#f59e0b', '#16a34a'], // App theme blue + Gold + Success Green
+    ticks: 150,                 // How long it lasts before fading
+    disableForReducedMotion: true, // Good for accessibility
+    
+    // THIS FIXES THE LAYER ISSUE:
+    // This forces the library's internal canvas element onto layer 99999,
+    // which puts it safely in front of your #day-panel and modals.
+    zIndex: 99999 
+  });
+}
+
 // ─── TASK ACTIONS ─────────────────────────────────────────────────────────────
 async function toggleTask(id) {
   if (pendingToggleIds.has(id)) return;
@@ -923,6 +954,9 @@ async function toggleTask(id) {
     const t = tasks.find(x => x.id === id);
     if (!t) return;
     if (!t.completed) {
+      // 🎉 BOOM! Hit them with the dopamine!
+      triggerDopamineHit(id);
+      
       t.completed = true; t.completedAt = t.date || todayDS();
       await fbPatch(t.id, { completed: true, completedAt: t.completedAt });
       if (t.type === 'recurring' && t.recurringDays) {
@@ -1005,7 +1039,6 @@ function openForm(task, defaultDate) {
   document.getElementById('modal-title').textContent = task ? '✏️ Edit Task' : '＋ New Task';
   document.getElementById('save-btn').textContent = task ? 'Save Changes' : 'Add Task';
   document.getElementById('f-title').value = task ? task.title : '';
-  renderTaskTitleSuggestions(task ? task.title : '');
   document.getElementById('f-notes').value = task ? (task.notes || '') : '';
   document.getElementById('f-date').value = task ? (task.date || defaultDate || todayDS()) : (defaultDate || todayDS());
   const type = task ? task.type : (defaultDate ? 'daily' : 'general');
@@ -1021,7 +1054,7 @@ function openForm(task, defaultDate) {
   document.getElementById('form-backdrop').style.display = '';
   document.getElementById('task-modal').style.display = '';
   _pushModal(_closeFormUI);
-  if (!task) setTimeout(() => document.getElementById('f-title').focus(), 100);
+  if (!task) document.getElementById('f-title').focus();
 }
 async function deleteEditingTask() {
   if (!editTaskId) return;
@@ -1034,6 +1067,8 @@ async function deleteEditingTask() {
 function _closeFormUI() {
   document.getElementById('form-backdrop').style.display = 'none';
   document.getElementById('task-modal').style.display = 'none';
+  const dropdown = document.getElementById('task-title-dropdown');
+  if (dropdown) dropdown.style.display = 'none';
   editTaskId = null;
 }
 
@@ -1108,31 +1143,106 @@ async function saveTask() {
 // ─── SEARCH ───────────────────────────────────────────────────────────────────
 function openSearch() {
   document.getElementById('search-panel').classList.add('open');
-  renderSearchSuggestions(document.getElementById('search-input').value);
+  runSearch(); 
   _pushModal(_closeSearchUI);
-  setTimeout(() => document.getElementById('search-input').focus(), 100);
+  document.getElementById('search-input').focus();
 }
+
 function _closeSearchUI() {
   document.getElementById('search-panel').classList.remove('open');
   document.getElementById('search-input').value = '';
+  const dropdown = document.getElementById('search-suggestions-dropdown');
+  if (dropdown) dropdown.style.display = 'none';
 }
+
 function closeSearch() {
   if (_modalStack.length && _modalStack[_modalStack.length-1] === _closeSearchUI) _popModal();
   else _closeSearchUI();
 }
-function highlight(text, query) {
-  if (!query) return escHtml(text);
-  const safe = escHtml(text);
-  const safeQ = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return safe.replace(new RegExp(safeQ, 'gi'), m => `<mark>${m}</mark>`);
+
+function matchesAllTokens(text, tokens) {
+  if (!text) return false;
+  const lowerText = text.toLowerCase();
+  return tokens.every(token => lowerText.includes(token));
 }
-function renderSearchSuggestions(query = '') {
-  const suggestionsEl = document.getElementById('search-suggestions');
-  if (!suggestionsEl) return;
-  const q = query.trim().toLowerCase();
+
+function highlight(text, query) {
+  if (!query || !query.trim()) return escHtml(text);
+  const safe = escHtml(text);
+  const tokens = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  if (!tokens.length) return safe;
+  tokens.sort((a, b) => b.length - a.length);
+  const pattern = tokens.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+  return safe.replace(new RegExp(`(${pattern})`, 'gi'), m => `<mark>${m}</mark>`);
+}
+
+// Selects the suggestion and safely hides the dropdown
+function selectTaskTitle(val) {
+  document.getElementById('f-title').value = val;
+  document.getElementById('task-title-dropdown').style.display = 'none';
+  updateSaveBtn();
+}
+
+function renderTaskTitleSuggestions(query = '') {
+  const dropdown = document.getElementById('task-title-dropdown');
+  if (!dropdown) return;
+  const tokens = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  
+  if (!tokens.length) { 
+    dropdown.style.display = 'none'; 
+    return; 
+  }
+  
+  const currentId = editTaskId;
   const seen = new Set();
   const suggestions = tasks
-    .filter(t => t.title && (!q || t.title.toLowerCase().includes(q)))
+    .filter(t => t.id !== currentId && t.title && matchesAllTokens(t.title, tokens))
+    .sort((a,b) => a.title.localeCompare(b.title, undefined, { sensitivity:'base' }))
+    .map(t => t.title)
+    .filter(title => {
+      const key = title.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, 10);
+
+  if (suggestions.length === 0) {
+    dropdown.style.display = 'none';
+  } else {
+    dropdown.innerHTML = suggestions.map(title => 
+      `<div style="padding:10px 12px; font-size:14px; border-bottom:1px solid #f0ece4; cursor:pointer;" 
+            onmousedown="selectTaskTitle(this.getAttribute('data-val'))" data-val="${escHtml(title)}">
+        ${highlight(title, query)}
+      </div>`
+    ).join('');
+    dropdown.style.display = 'block';
+  }
+}
+
+// Selects the search suggestion and automatically runs the search
+function selectSearchSuggestion(val) {
+  const input = document.getElementById('search-input');
+  input.value = val;
+  document.getElementById('search-suggestions-dropdown').style.display = 'none';
+  runSearch();
+  input.focus();
+}
+
+// Renders the tokenized suggestions for the main search bar
+function renderSearchSuggestions(query = '') {
+  const dropdown = document.getElementById('search-suggestions-dropdown');
+  if (!dropdown) return;
+  const tokens = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  
+  if (!tokens.length) { 
+    dropdown.style.display = 'none'; 
+    return; 
+  }
+  
+  const seen = new Set();
+  const suggestions = tasks
+    .filter(t => t.title && matchesAllTokens(t.title, tokens))
     .sort((a,b) => {
       if (a.completed !== b.completed) return a.completed ? 1 : -1;
       if (a.date && b.date) return a.date > b.date ? 1 : -1;
@@ -1148,33 +1258,27 @@ function renderSearchSuggestions(query = '') {
       return true;
     })
     .slice(0, 10);
-  suggestionsEl.innerHTML = suggestions.map(title => `<option value="${escHtml(title)}"></option>`).join('');
+
+  if (suggestions.length === 0) {
+    dropdown.style.display = 'none';
+  } else {
+    dropdown.innerHTML = suggestions.map(title => 
+      `<div style="padding:10px 12px; font-size:14px; border-bottom:1px solid #f0ece4; cursor:pointer;" 
+            onmousedown="selectSearchSuggestion(this.getAttribute('data-val'))" data-val="${escHtml(title)}">
+        ${highlight(title, query)}
+      </div>`
+    ).join('');
+    dropdown.style.display = 'block';
+  }
 }
-function renderTaskTitleSuggestions(query = '') {
-  const suggestionsEl = document.getElementById('task-title-suggestions');
-  if (!suggestionsEl) return;
-  const q = query.trim().toLowerCase();
-  const currentId = editTaskId;
-  const seen = new Set();
-  const suggestions = tasks
-    .filter(t => t.id !== currentId && t.title && (!q || t.title.toLowerCase().includes(q)))
-    .sort((a,b) => a.title.localeCompare(b.title, undefined, { sensitivity:'base' }))
-    .map(t => t.title)
-    .filter(title => {
-      const key = title.toLowerCase();
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    })
-    .slice(0, 10);
-  suggestionsEl.innerHTML = suggestions.map(title => `<option value="${escHtml(title)}"></option>`).join('');
-}
+
 function searchDateSort(a, b, newestFirst = false) {
   if (a.date && b.date) return newestFirst ? (b.date > a.date ? 1 : b.date < a.date ? -1 : 0) : (a.date > b.date ? 1 : a.date < b.date ? -1 : 0);
   if (a.date) return -1;
   if (b.date) return 1;
   return a.title.localeCompare(b.title);
 }
+
 function searchResultHTML(t, q) {
   const pr = PRIO[t.priority] || PRIO.medium;
   let dateChip = t.type === 'general' ? `<span class="src-type-chip">📦 Backlog</span>` : t.date ? `<span class="src-date-chip">📅 ${fmtDate(t.date)}</span>` : '';
@@ -1186,20 +1290,35 @@ function searchResultHTML(t, q) {
     ${t.notes ? `<div class="src-notes">${highlight(t.notes, q)}</div>` : ''}
   </div>`;
 }
+
 function runSearch() {
-  const q = document.getElementById('search-input').value.trim().toLowerCase();
+  const q = document.getElementById('search-input').value.trim();
   const resultsEl = document.getElementById('search-results');
-  renderSearchSuggestions(q);
-  if (!q) { resultsEl.innerHTML = `<div class="search-empty"><div class="search-empty-icon">🔍</div><div class="search-empty-title">Search your tasks</div><div class="search-empty-sub">Type anything to find tasks by name or notes</div></div>`; return; }
-  const matches = tasks.filter(t => t.title.toLowerCase().includes(q) || (t.notes && t.notes.toLowerCase().includes(q)));
-  if (matches.length === 0) { resultsEl.innerHTML = `<div class="search-empty"><div class="search-empty-icon">🤷</div><div class="search-empty-title">No results for "${escHtml(q)}"</div><div class="search-empty-sub">Try a different search term</div></div>`; return; }
+  
+  const tokens = q.toLowerCase().split(/\s+/).filter(Boolean);
+  
+  if (!tokens.length) { 
+    resultsEl.innerHTML = `<div class="search-empty"><div class="search-empty-icon">🔍</div><div class="search-empty-title">Search your tasks</div><div class="search-empty-sub">Type anything to find tasks by name or notes</div></div>`; 
+    return; 
+  }
+  
+  const matches = tasks.filter(t => matchesAllTokens(t.title, tokens) || matchesAllTokens(t.notes, tokens));
+  
+  if (matches.length === 0) { 
+    resultsEl.innerHTML = `<div class="search-empty"><div class="search-empty-icon">🤷</div><div class="search-empty-title">No results for "${escHtml(q)}"</div><div class="search-empty-sub">Try a different search term</div></div>`; 
+    return; 
+  }
+  
   const pending = matches.filter(t => !t.completed).sort((a,b) => searchDateSort(a, b, false));
   const completed = matches.filter(t => t.completed).sort((a,b) => searchDateSort(a, b, true));
   let html = `<div class="search-count">${matches.length} result${matches.length !== 1 ? 's' : ''}</div>`;
+  
   if (pending.length) html += `<div class="section-divider">To do</div>` + pending.map(t => searchResultHTML(t, q)).join('');
   if (completed.length) html += `<div class="section-divider">✓ Completed</div>` + completed.map(t => searchResultHTML(t, q)).join('');
+  
   resultsEl.innerHTML = html;
 }
+
 function onSearchResultClick(id, date) {
   closeSearch();
   calDate = new Date(date + 'T12:00:00');
@@ -1209,6 +1328,7 @@ function onSearchResultClick(id, date) {
     setTimeout(() => editTask(id), 80);
   }, 50);
 }
+
 function onSearchResultClickBacklog(id) {
   closeSearch();
   switchView('backlog');
@@ -1234,9 +1354,26 @@ async function runRescheduleCheck() {
   );
   
   if (overdue.length) {
-    for (const t of overdue) { t.date = td; await fbPatch(t.id, { date: td }); }
-    const n = overdue.length;
-    showToast(`🔁 ${n} overdue task${n > 1 ? 's' : ''} rescheduled to today`);
+    let shiftedCount = 0;
+    for (const t of overdue) {
+      // Re-verify with the database to ensure we aren't using stale background-tab data
+      try {
+        const latest = await window._getTask(currentUser.uid, t.id);
+        
+        // Only shift if it is STILL incomplete in the absolute latest database state
+        if (latest && !latest.completed && latest.date && latest.date < td) {
+          t.date = td; 
+          await fbPatch(t.id, { date: td });
+          shiftedCount++;
+        }
+      } catch(e) {
+        console.error("Failed to verify task status:", e);
+      }
+    }
+    
+    if (shiftedCount > 0) {
+      showToast(`🔁 ${shiftedCount} overdue task${shiftedCount > 1 ? 's' : ''} rescheduled to today`);
+    }
   }
   
   // Always await so notification sees the fully rescheduled task list
@@ -1425,6 +1562,27 @@ document.addEventListener('keydown', e => {
   }
   if (e.key === 'Enter' && document.getElementById('task-modal').style.display !== 'none') {
     if (document.activeElement.tagName !== 'TEXTAREA') saveTask();
+  }
+});
+
+// ─── CLOSE DROPDOWNS ON OUTSIDE CLICK ─────────────────────────────────────────
+document.addEventListener('pointerdown', e => {
+  // Handle Search Dropdown
+  const searchInput = document.getElementById('search-input');
+  const searchDropdown = document.getElementById('search-suggestions-dropdown');
+  if (searchDropdown && searchDropdown.style.display !== 'none') {
+    if (!searchDropdown.contains(e.target) && e.target !== searchInput) {
+      searchDropdown.style.display = 'none';
+    }
+  }
+  
+  // Handle Task Title Dropdown
+  const titleInput = document.getElementById('f-title');
+  const titleDropdown = document.getElementById('task-title-dropdown');
+  if (titleDropdown && titleDropdown.style.display !== 'none') {
+    if (!titleDropdown.contains(e.target) && e.target !== titleInput) {
+      titleDropdown.style.display = 'none';
+    }
   }
 });
 

@@ -1,4 +1,4 @@
-const CACHE  = 'flowdo-v12';
+const CACHE  = 'flowdo-v13';
 const ASSETS = [
   '/',
   '/index.html',
@@ -70,12 +70,10 @@ self.addEventListener('message', e => {
   const tag = 'flowdo-summary';
 
   e.waitUntil((async () => {
+    // FIXED AGAIN: Unconditionally close ANY existing notifications from this app.
     const existing = await self.registration.getNotifications();
-    existing.forEach(n => {
-      const title = (n.title || '').toLowerCase();
-      const tag = (n.tag || '').toLowerCase();
-      if (tag.includes('flowdo') || title.startsWith('flowdo')) n.close();
-    });
+    existing.forEach(n => n.close());
+
     await self.registration.showNotification(title, {
       body,
       icon:     '/icon-192.png',
