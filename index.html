@@ -9,6 +9,10 @@
 <title>FlowDo — Task Calendar</title>
 <link rel="manifest" href="manifest.json"/>
 <link rel="apple-touch-icon" href="icon-192.png"/>
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin/>
+<link rel="preconnect" href="https://www.googleapis.com" crossorigin/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -160,15 +164,10 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#1e3a5f!import
 .p-badge{display:inline-block;padding:1px 8px;border-radius:8px;font-size:10px;font-weight:800;letter-spacing:.3px;}
 .rec-badge{font-size:10px;color:#64748b;background:#f1f5f9;padding:1px 7px;border-radius:8px;font-weight:700;}
 .done-badge{font-size:10px;color:#94a3b8;}
-.more-btn{width:28px;height:28px;border-radius:6px;border:1px solid #e2e8f0;background:#f8fafc;color:#64748b;font-size:10px;display:flex;align-items:center;justify-content:center;letter-spacing:2px;flex-shrink:0;}
-.t-expand{border-top:1px solid #f0ece4;background:#faf8f5;padding:10px 12px;}
-.t-notes{font-size:13px;color:#64748b;line-height:1.5;margin-bottom:8px;}
-.exp-acts{display:flex;gap:6px;flex-wrap:wrap;}
-.e-btn{padding:4px 10px;border-radius:7px;border:1px solid #e2e8f0;background:#fff;font-size:12px;font-weight:700;color:#374151;}
-.e-btn:hover{background:#f0f7ff;border-color:#1e3a5f;}
-.e-btn.danger{color:#dc2626;}
-.date-assign-row{display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap;}
-.date-assign-row input{padding:6px 10px;border-radius:7px;border:1px solid #e2e8f0;font-size:13px;background:#faf8f5;}
+.t-main{cursor:pointer;}
+.t-notes{font-size:13px;color:#64748b;line-height:1.5;margin-top:6px;}
+.delete-btn{padding:10px 20px;border-radius:10px;border:1px solid #fecaca;background:#fff5f5;color:#b91c1c;font-size:14px;font-weight:700;}
+.delete-btn:hover{background:#fee2e2;}
 
 /* DIVIDER */
 .section-divider{font-size:11px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;padding:10px 4px 4px;border-top:1px solid #f0ece4;margin-top:4px;flex-shrink:0;}
@@ -270,19 +269,29 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#1e3a5f!import
       <div class="tabs">
         <button class="search-btn" onclick="openSearch()" title="Search tasks">🔍</button>
         <button class="tab-btn active" id="tab-cal" onclick="switchView('calendar')">📅 Calendar</button>
+        <button class="tab-btn" id="tab-diary" onclick="switchView('diary')">🍽️ Diary</button>
         <button class="tab-btn" id="tab-bl" onclick="switchView('backlog')">📦 Backlog <span class="tab-badge" id="bl-badge" style="display:none">0</span></button>
       </div>
-      <div id="user-avatar-wrap" onclick="toggleUserMenu()"></div>
+      <div id="user-avatar-wrap" onclick="openNotifSettings()"></div>
     </div>
   </header>
 
   <div id="main">
     <div id="view-calendar"></div>
+    <div id="view-diary" style="display:none"></div>
     <div id="view-backlog" style="display:none"></div>
   </div>
 
-  <button id="fab" onclick="openForm(null, currentSelDay || todayDS())">+</button>
+  <button id="fab" onclick="handleFabClick()">+</button>
 </div>
+
+<script>
+if (localStorage.getItem('flowdo_was_logged_in') === 'true') {
+  document.getElementById('loading-screen').style.display = 'none';
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app').style.display = '';
+}
+</script>
 
 <!-- User menu -->
 <div id="user-menu">
@@ -290,7 +299,6 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#1e3a5f!import
     <div id="menu-name"></div>
     <div class="user-menu-email" id="menu-email"></div>
   </div>
-  <button class="user-menu-btn" onclick="openNotifSettings()">🔔 Notification settings</button>
   <button class="user-menu-btn danger" onclick="signOut()">🚪 Sign out</button>
 </div>
 <div class="backdrop" id="user-menu-backdrop" style="display:none;z-index:399" onclick="closeUserMenu()"></div>
@@ -332,7 +340,8 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#1e3a5f!import
     </div>
     <button class="save-btn" id="notif-test-btn" style="align-self:flex-start;padding:8px 18px;font-size:13px" onclick="sendTestNotif()">🔁 Refresh notifications</button>
   </div>
-  <div class="modal-foot">
+  <div class="modal-foot" style="justify-content:space-between">
+    <button class="delete-btn" style="margin-right:auto" onclick="signOut()">Sign out</button>
     <button class="cancel-btn" onclick="closeNotifSettings()">Close</button>
   </div>
 </div>
@@ -342,7 +351,8 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#1e3a5f!import
   <div class="search-panel-hdr">
     <div class="search-input-wrap">
       <span class="search-icon">🔍</span>
-      <input id="search-input" type="text" placeholder="Search tasks…" oninput="runSearch()" autocomplete="off"/>
+      <input id="search-input" type="text" placeholder="Search tasks…" oninput="runSearch()" autocomplete="off" list="search-suggestions"/>
+      <datalist id="search-suggestions"></datalist>
     </div>
     <button class="search-close-btn" onclick="closeSearch()">✕</button>
   </div>
@@ -370,7 +380,7 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#1e3a5f!import
     <div class="celeb" id="prog-celeb" style="display:none">🎉 All done! Amazing work today!</div>
   </div>
   <div class="task-scroll" id="panel-task-list"></div>
-  <button class="add-task-btn" id="panel-add-btn" onclick="openForm(null, currentSelDay)">+ Add Task to This Day</button>
+  <div id="panel-actions"><button class="add-task-btn" id="panel-add-btn" onclick="openForm(null, currentSelDay)">+ Add Task to This Day</button></div>
 </div>
 
 <!-- Toast -->
@@ -386,7 +396,8 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#1e3a5f!import
   <div class="modal-body">
     <div class="form-group">
       <label class="form-label">Task name *</label>
-      <input class="form-input" id="f-title" placeholder="What needs to be done?" oninput="updateSaveBtn()"/>
+      <input class="form-input" id="f-title" placeholder="What needs to be done?" oninput="updateSaveBtn();renderTaskTitleSuggestions(this.value)" autocomplete="off" list="task-title-suggestions"/>
+      <datalist id="task-title-suggestions"></datalist>
     </div>
     <div class="form-group">
       <label class="form-label">Task type</label>
@@ -398,7 +409,7 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#1e3a5f!import
     </div>
     <div class="form-group" id="f-date-group">
       <label class="form-label" id="f-date-label">Date</label>
-      <input type="date" class="form-input" id="f-date"/>
+      <input type="date" class="form-input" id="f-date" onpointerdown="openDateInputPicker(this)"/>
     </div>
     <div class="form-group" id="f-interval-group" style="display:none">
       <label class="form-label">Repeat every</label>
@@ -407,6 +418,7 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#1e3a5f!import
         <button class="int-btn" onclick="setInterval(2)">Every 2d</button>
         <button class="int-btn active" onclick="setInterval(7)">Weekly</button>
         <button class="int-btn" onclick="setInterval(14)">Bi-weekly</button>
+        <button class="int-btn" onclick="setInterval(21)">Tri-weekly</button>
         <button class="int-btn" onclick="setInterval(30)">Monthly</button>
       </div>
       <div class="custom-days-row">
@@ -429,9 +441,13 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#1e3a5f!import
       <label class="form-label">Notes (optional)</label>
       <textarea class="form-input" id="f-notes" style="height:72px;resize:vertical" placeholder="Extra details…"></textarea>
     </div>
-  <div class="modal-foot">
+  </div>
+  <div class="modal-foot" style="justify-content:space-between">
+    <button class="delete-btn" id="delete-btn" style="display:none" onclick="deleteEditingTask()">Delete</button>
+    <div style="display:flex;gap:10px">
     <button class="cancel-btn" onclick="closeForm()">Cancel</button>
     <button class="save-btn" id="save-btn" onclick="saveTask()" disabled>Add Task</button>
+    </div>
   </div>
 </div>
 
@@ -443,7 +459,7 @@ import { initializeApp }                              from 'https://www.gstatic.
 import { getAuth, GoogleAuthProvider, signInWithPopup,
          signOut as fbSignOut, onAuthStateChanged }   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import { getFirestore, collection, doc, setDoc,
-         deleteDoc, onSnapshot,
+         deleteDoc, updateDoc, onSnapshot,
          enableIndexedDbPersistence }                 from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 // ▼▼▼  PASTE YOUR FIREBASE CONFIG HERE  ▼▼▼
@@ -467,6 +483,8 @@ const provider = new GoogleAuthProvider();
 enableIndexedDbPersistence(db).catch(() => {});
 
 let unsubscribeTasks = null;
+let unsubscribeDiary = null;
+let unsubscribeSettings = null;
 
 // Expose helpers to global scope for the main script below
 window._fbSignIn = () => signInWithPopup(auth, provider);
@@ -485,10 +503,48 @@ window._listenTasks = (uid, onChange) => {
   );
 };
 
-window._stopListening = () => { if (unsubscribeTasks) { unsubscribeTasks(); unsubscribeTasks = null; } };
+window._listenDiary = (uid, onChange) => {
+  if (unsubscribeDiary) unsubscribeDiary();
+  const col = collection(db, 'users', uid, 'diary');
+  unsubscribeDiary = onSnapshot(col,
+    snap => {
+      const docs = [];
+      snap.forEach(d => docs.push(d.data()));
+      onChange(docs, null);
+    },
+    err => onChange(null, err)
+  );
+};
+
+window._listenNotifSettings = (uid, onChange) => {
+  if (unsubscribeSettings) unsubscribeSettings();
+  const ref = doc(db, 'users', uid, 'settings', 'notifications');
+  unsubscribeSettings = onSnapshot(ref,
+    snap => onChange(snap.exists() ? snap.data() : {}, null),
+    err => onChange(null, err)
+  );
+};
+
+window._stopListening = () => {
+  if (unsubscribeTasks) { unsubscribeTasks(); unsubscribeTasks = null; }
+  if (unsubscribeDiary) { unsubscribeDiary(); unsubscribeDiary = null; }
+  if (unsubscribeSettings) { unsubscribeSettings(); unsubscribeSettings = null; }
+};
 
 window._saveTask = async (uid, task) => {
   await setDoc(doc(db, 'users', uid, 'tasks', task.id), task);
+};
+window._patchTask = async (uid, id, patch) => {
+  await updateDoc(doc(db, 'users', uid, 'tasks', id), patch);
+};
+window._saveDiary = async (uid, entry) => {
+  await setDoc(doc(db, 'users', uid, 'diary', entry.id), entry);
+};
+window._deleteDiary = async (uid, id) => {
+  await deleteDoc(doc(db, 'users', uid, 'diary', id));
+};
+window._saveNotifHour = async (uid, hour) => {
+  await setDoc(doc(db, 'users', uid, 'settings', 'notifications'), { hour }, { merge: true });
 };
 
 window._deleteTask = async (uid, id) => {
@@ -508,6 +564,7 @@ window.onAuthStateChange = function(user) {
   document.getElementById('loading-screen').style.display = 'none';
   if (user) {
     currentUser = user;
+    localStorage.setItem('flowdo_was_logged_in', 'true');
     document.getElementById('auth-screen').style.display = 'none';
     document.getElementById('app').style.display = '';
     renderUserAvatar(user);
@@ -516,12 +573,31 @@ window.onAuthStateChange = function(user) {
     window._listenTasks(user.uid, (docs, err) => {
       if (err) { setSyncStatus('error'); return; }
       tasks = docs || [];
+      localStorage.setItem('flowdo_cached_tasks', JSON.stringify(tasks));
       setSyncStatus('synced');
       rerender();
       // Fire on the first successful load after a full page open
       if (!initialCheckDone) {
         initialCheckDone = true;
         setTimeout(runRescheduleCheck, 600);
+      }
+    });
+    window._listenDiary(user.uid, (docs, err) => {
+      if (err) { setSyncStatus('error'); return; }
+      diaryEntries = docs || [];
+      localStorage.setItem('flowdo_cached_diary', JSON.stringify(diaryEntries));
+      setSyncStatus('synced');
+      rerender();
+    });
+    window._listenNotifSettings(user.uid, (settings, err) => {
+      if (err) return;
+      if (settings && settings.hour !== undefined) {
+        localStorage.setItem(NOTIF_HOUR_KEY, String(settings.hour));
+        const hourEl = document.getElementById('notif-hour');
+        if (hourEl) hourEl.value = notifHour();
+        rerender();
+      } else {
+        window._saveNotifHour(user.uid, notifHour()).catch(() => {});
       }
     });
     // Register service worker for offline support and notification delivery
@@ -532,6 +608,9 @@ window.onAuthStateChange = function(user) {
     handleNotifUrlParams();
   } else {
     currentUser = null;
+    localStorage.removeItem('flowdo_was_logged_in');
+    localStorage.removeItem('flowdo_cached_tasks');
+    localStorage.removeItem('flowdo_cached_diary');
     window._stopListening();
     document.getElementById('auth-screen').style.display = 'flex';
     document.getElementById('app').style.display = 'none';
@@ -559,7 +638,15 @@ function setSyncStatus(status) {
 }
 
 function signIn()  { window._fbSignIn().catch(e => alert('Sign-in failed: ' + e.message)); }
-function signOut() { closeUserMenu(); window._fbSignOut(); }
+function signOut() {
+  if (!confirm('Sign out of FlowDo?')) return;
+  localStorage.removeItem('flowdo_was_logged_in');
+  localStorage.removeItem('flowdo_cached_tasks');
+  localStorage.removeItem('flowdo_cached_diary');
+  closeUserMenu();
+  closeNotifSettings();
+  window._fbSignOut();
+}
 
 function toggleUserMenu() {
   document.getElementById('user-menu').classList.toggle('open');
@@ -572,7 +659,9 @@ function closeUserMenu() {
 }
 
 // ─── TASK PERSISTENCE (Firebase instead of localStorage) ──────────────────────
-let tasks = [];
+let tasks = JSON.parse(localStorage.getItem('flowdo_cached_tasks') || '[]');
+let diaryEntries = JSON.parse(localStorage.getItem('flowdo_cached_diary') || '[]');
+const pendingToggleIds = new Set();
 
 async function fbSave(task) {
   if (!currentUser) return;
@@ -584,6 +673,21 @@ async function fbDelete(id) {
   if (!currentUser) return;
   setSyncStatus('syncing');
   try { await window._deleteTask(currentUser.uid, id); } catch(e) { setSyncStatus('error'); }
+}
+async function fbPatch(id, patch) {
+  if (!currentUser) return;
+  setSyncStatus('syncing');
+  try { await window._patchTask(currentUser.uid, id, patch); } catch(e) { setSyncStatus('error'); }
+}
+async function fbSaveDiary(entry) {
+  if (!currentUser) return;
+  setSyncStatus('syncing');
+  try { await window._saveDiary(currentUser.uid, entry); } catch(e) { setSyncStatus('error'); }
+}
+async function fbDeleteDiary(id) {
+  if (!currentUser) return;
+  setSyncStatus('syncing');
+  try { await window._deleteDiary(currentUser.uid, id); } catch(e) { setSyncStatus('error'); }
 }
 
 // ─── DATE UTILS ───────────────────────────────────────────────────────────────
@@ -614,34 +718,55 @@ const PRIO = {
 const P_ORDER = ['critical','high','medium','low'];
 
 function cellColor(ds) {
-  const t = tasks.filter(x => x.date === ds);
-  if (!t.length) return null;
-  const total = t.length, done = t.filter(x => x.completed).length, pct = done / total;
-  const isPast = ds < todayDS();
-  if (pct === 1)   return { bg:'#dcfce7', bar:'#16a34a', text:'#15803d' };
-  if (pct >= 0.5)  return { bg:'#fef9c3', bar:'#ca8a04', text:'#a16207' };
-  if (pct > 0)     return { bg:'#fff7ed', bar:'#ea580c', text:'#9a3412' };
-  if (isPast)      return { bg:'#fee2e2', bar:'#dc2626', text:'#991b1b' };
-  return { bg:'#f8fafc', bar:'#cbd5e1', text:'#64748b' };
+  const dayTasks = tasks.filter(x => x.date === ds);
+  if (!dayTasks.length || ds > todayDS()) return null;
+  const done = dayTasks.filter(x => x.completed).length;
+  if (done >= 4) return { bg:'#dcfce7', bar:'#16a34a', text:'#15803d' };
+  if (done >= 2) return { bg:'#fef9c3', bar:'#ca8a04', text:'#a16207' };
+  return { bg:'#fee2e2', bar:'#dc2626', text:'#991b1b' };
+}
+
+function diaryCellColor(ds) {
+  if (ds > todayDS()) return null;
+  const symptoms = diaryEntries.filter(x => x.date === ds && x.kind === 'symptom').length;
+  if (symptoms >= 4) return { bg:'#fee2e2', bar:'#dc2626', text:'#991b1b' };
+  if (symptoms >= 2) return { bg:'#fef9c3', bar:'#ca8a04', text:'#a16207' };
+  if (symptoms === 1) return { bg:'#fff7ed', bar:'#ea580c', text:'#9a3412' };
+  return { bg:'#dcfce7', bar:'#16a34a', text:'#15803d' };
 }
 
 // ─── STATE ────────────────────────────────────────────────────────────────────
 let currentView   = 'calendar';
 let currentSelDay = null;
 let calDate       = new Date();
+let diaryDate     = new Date();
+let panelMode     = 'tasks';
+let editDiaryId   = null;
+let diaryEntryKind = 'food';
+let backlogMode   = 'tasks';
 let editTaskId    = null;
 let formType      = 'daily';
 let formPriority  = 'medium';
 let formRecDays   = 7;
+let formScope     = 'task';
 
 // ─── VIEW SWITCHING ───────────────────────────────────────────────────────────
+function handleFabClick() {
+  if (currentView === 'diary') openDiaryForm(null, currentSelDay || todayDS(), 'food');
+  else if (currentView === 'backlog' && backlogMode === 'diary') openDiaryForm(null, '', 'food');
+  else openForm(null, currentSelDay || todayDS());
+}
+
 function switchView(v) {
   currentView = v;
   document.getElementById('view-calendar').style.display = v === 'calendar' ? '' : 'none';
+  document.getElementById('view-diary').style.display    = v === 'diary'    ? '' : 'none';
   document.getElementById('view-backlog').style.display  = v === 'backlog'  ? '' : 'none';
-  document.getElementById('tab-cal').className = 'tab-btn' + (v==='calendar'?' active':'');
-  document.getElementById('tab-bl').className  = 'tab-btn' + (v==='backlog'?' active':'');
+  document.getElementById('tab-cal').className   = 'tab-btn' + (v==='calendar'?' active':'');
+  document.getElementById('tab-diary').className = 'tab-btn' + (v==='diary'?' active':'');
+  document.getElementById('tab-bl').className    = 'tab-btn' + (v==='backlog'?' active':'');
   if (v === 'backlog') renderBacklog();
+  else if (v === 'diary') renderDiaryCalendar();
   else renderCalendar();
 }
 
@@ -667,7 +792,7 @@ function renderCalendar() {
 
   for (let i = 1; i <= daysInMonth; i++) {
     const ds = `${year}-${String(month+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
-    const dt = tasks.filter(t => t.date === ds).sort((a,b) => P_ORDER.indexOf(a.priority)-P_ORDER.indexOf(b.priority));
+    const dt = tasks.filter(t => t.date === ds).sort(taskPanelSort);
     const total = dt.length, done = dt.filter(t => t.completed).length, pct = total > 0 ? done/total : 0;
     const col = cellColor(ds);
     const isToday = ds === td, isSel = ds === currentSelDay;
@@ -690,15 +815,70 @@ function renderCalendar() {
   }
 
   html += `</div><div class="legend">
-    <span class="leg-item"><span class="leg-dot" style="background:#dcfce7;border:1.5px solid #16a34a"></span>All done</span>
-    <span class="leg-item"><span class="leg-dot" style="background:#fef9c3;border:1.5px solid #ca8a04"></span>In progress</span>
-    <span class="leg-item"><span class="leg-dot" style="background:#fee2e2;border:1.5px solid #dc2626"></span>Overdue</span>
-    <span class="leg-item"><span class="leg-dot" style="background:#f8fafc;border:1.5px solid #cbd5e1"></span>Upcoming</span>
+    <span class="leg-item"><span class="leg-dot" style="background:#dcfce7;border:1.5px solid #16a34a"></span>4+ completed</span>
+    <span class="leg-item"><span class="leg-dot" style="background:#fef9c3;border:1.5px solid #ca8a04"></span>2–3 completed</span>
+    <span class="leg-item"><span class="leg-dot" style="background:#fee2e2;border:1.5px solid #dc2626"></span>0–1 completed</span>
+    <span class="leg-item"><span class="leg-dot" style="background:#fff;border:1.5px solid #cbd5e1"></span>Upcoming / empty</span>
   </div></div>`;
 
   document.getElementById('view-calendar').innerHTML = html;
+  const calBox = document.querySelector('.cal-box');
+  if (calBox) {
+    calBox.addEventListener('touchstart', e => swipeStart('month', e), { passive: true });
+    calBox.addEventListener('touchend', swipeEnd, { passive: true });
+  }
   updateBacklogBadge();
 }
+
+function renderDiaryCalendar() {
+  const year = diaryDate.getFullYear(), month = diaryDate.getMonth();
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const td = todayDS();
+  let html = `<div class="cal-box" style="box-shadow:0 4px 24px rgba(13,148,136,.12)">
+    <div class="month-nav" style="background:#f0fdfa">
+      <button class="m-arrow" onclick="prevDiaryMonth()">‹</button>
+      <h2 class="m-title" style="color:#0f766e">🍽️ ${MONTHS[month]} ${year}</h2>
+      <button class="m-arrow" onclick="nextDiaryMonth()">›</button>
+      <button class="today-btn" style="border-color:#0d9488;color:#0d9488" onclick="goDiaryToday()">Today</button>
+    </div>
+    <div class="dow-row">${DOW.map(d=>`<div class="dow-cell">${d}</div>`).join('')}</div>
+    <div class="cal-grid">${'<div class="empty-cell"></div>'.repeat(firstDay)}`;
+  for (let i = 1; i <= daysInMonth; i++) {
+    const ds = `${year}-${String(month+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
+    const entries = diaryEntries.filter(t => t.date === ds);
+    const foods = entries.filter(t => t.kind === 'food').length;
+    const symptoms = entries.filter(t => t.kind === 'symptom').length;
+    const col = diaryCellColor(ds);
+    const isToday = ds === td, isSel = panelMode === 'diary' && ds === currentSelDay;
+    const outline = isSel ? '2.5px solid #0f766e' : isToday ? '2.5px solid #f59e0b' : 'none';
+    const numCls = 'day-num' + (isToday ? ' is-today' : '');
+    const numColor = isToday ? '' : `color:${col ? col.text : '#374151'}`;
+    html += `<div class="day-cell diary-day-cell" style="background:${col?col.bg:'#fff'};outline:${outline};outline-offset:-1px" onclick="openDiaryDay('${ds}')">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <span class="${numCls}" style="${numColor}">${i}</span>
+        ${entries.length ? `<span style="font-size:9px;font-weight:700;color:${col?col.text:'#9ca3af'}">🍽️${foods} ⚕️${symptoms}</span>` : ''}
+      </div>
+      ${entries.length ? `<div class="mini-bar-bg"><div class="mini-bar-fill" style="width:${Math.min(symptoms,4)/4*100}%;background:${col?col.bar:'#e2e8f0'}"></div></div>` : ''}
+    </div>`;
+  }
+  html += `</div><div class="legend">
+    <span class="leg-item"><span class="leg-dot" style="background:#dcfce7;border:1.5px solid #16a34a"></span>0 symptoms</span>
+    <span class="leg-item"><span class="leg-dot" style="background:#fff7ed;border:1.5px solid #ea580c"></span>1 symptom</span>
+    <span class="leg-item"><span class="leg-dot" style="background:#fef9c3;border:1.5px solid #ca8a04"></span>2–3 symptoms</span>
+    <span class="leg-item"><span class="leg-dot" style="background:#fee2e2;border:1.5px solid #dc2626"></span>4+ symptoms</span>
+  </div></div>`;
+  document.getElementById('view-diary').innerHTML = html;
+  const calBox = document.querySelector('#view-diary .cal-box');
+  if (calBox) {
+    calBox.addEventListener('touchstart', e => swipeStart('month', e), { passive: true });
+    calBox.addEventListener('touchend', swipeEnd, { passive: true });
+  }
+}
+
+function prevDiaryMonth() { diaryDate = new Date(diaryDate.getFullYear(), diaryDate.getMonth()-1, 1); renderDiaryCalendar(); }
+function nextDiaryMonth() { diaryDate = new Date(diaryDate.getFullYear(), diaryDate.getMonth()+1, 1); renderDiaryCalendar(); }
+function goDiaryToday()   { diaryDate = new Date(); renderDiaryCalendar(); openDiaryDay(todayDS()); }
 
 function prevMonth() { calDate = new Date(calDate.getFullYear(), calDate.getMonth()-1, 1); renderCalendar(); }
 function nextMonth() { calDate = new Date(calDate.getFullYear(), calDate.getMonth()+1, 1); renderCalendar(); }
@@ -708,6 +888,7 @@ function goToday()   { calDate = new Date(); renderCalendar(); openDay(todayDS()
 // ─── UNIFIED BACK-NAVIGATION (Android swipe / hardware back button) ──────────
 // Tracks which modal/panel is currently open so popstate knows what to close
 let _modalStack = []; // stack of close-functions
+let _ignoreNextPop = false;
 
 function _pushModal(closeFn) {
   history.pushState({ flowdoModal: true }, '');
@@ -715,12 +896,16 @@ function _pushModal(closeFn) {
 }
 
 function _popModal() {
-  // Called by the UI close buttons — remove our history state and pop the stack
-  _modalStack.pop();
-  if (history.state && history.state.flowdoModal) history.back();
+  const closeFn = _modalStack.pop();
+  if (closeFn) closeFn();
+  if (history.state && history.state.flowdoModal) {
+    _ignoreNextPop = true;
+    history.back();
+  }
 }
 
 window.addEventListener('popstate', () => {
+  if (_ignoreNextPop) { _ignoreNextPop = false; return; }
   // Android back swipe / hardware back hit — close whatever is on top
   const closeFn = _modalStack.pop();
   if (closeFn) closeFn();
@@ -729,6 +914,7 @@ window.addEventListener('popstate', () => {
 let panelHistoryPushed = false;
 
 function openDay(ds) {
+  panelMode = 'tasks';
   currentSelDay = ds;
   renderCalendar();
   const td = todayDS();
@@ -744,11 +930,28 @@ function openDay(ds) {
   }
 }
 
+function openDiaryDay(ds) {
+  panelMode = 'diary';
+  currentSelDay = ds;
+  renderDiaryCalendar();
+  const td = todayDS();
+  document.getElementById('panel-date-label').textContent = '🍽️ ' + fmtDate(ds);
+  const pillEl = document.getElementById('panel-date-pill');
+  pillEl.innerHTML = ds === td ? '<span class="today-pill" style="background:#0d9488">Today</span>' : ds < td ? '<span class="past-pill">Past</span>' : '';
+  renderDiaryPanel(ds);
+  document.getElementById('panel-backdrop').style.display = '';
+  setTimeout(() => document.getElementById('day-panel').classList.add('open'), 10);
+  if (!panelHistoryPushed) {
+    panelHistoryPushed = true;
+    _pushModal(_closePanelUI);
+  }
+}
+
 function _closePanelUI() {
   panelHistoryPushed = false;
   document.getElementById('day-panel').classList.remove('open');
   document.getElementById('panel-backdrop').style.display = 'none';
-  setTimeout(() => { currentSelDay = null; renderCalendar(); }, 300);
+  setTimeout(() => { currentSelDay = null; if (panelMode === 'diary') renderDiaryCalendar(); else renderCalendar(); }, 300);
 }
 
 function closePanel() {
@@ -759,8 +962,15 @@ function closePanel() {
   }
 }
 
+function taskPanelSort(a, b) {
+  const priorityDiff = P_ORDER.indexOf(a.priority) - P_ORDER.indexOf(b.priority);
+  if (priorityDiff) return priorityDiff;
+  return a.title.localeCompare(b.title, undefined, { sensitivity:'base' });
+}
+
 function renderPanelTasks(ds) {
-  const dt = tasks.filter(t => t.date === ds).sort((a,b) => P_ORDER.indexOf(a.priority)-P_ORDER.indexOf(b.priority));
+  document.getElementById('panel-actions').innerHTML = `<button class="add-task-btn" id="panel-add-btn" onclick="openForm(null, currentSelDay)">+ Add Task to This Day</button>`;
+  const dt = tasks.filter(t => t.date === ds).sort(taskPanelSort);
   const total = dt.length, done = dt.filter(t => t.completed).length;
   const pct = total > 0 ? Math.round(done/total*100) : 0;
   const td = todayDS();
@@ -790,21 +1000,85 @@ function renderPanelTasks(ds) {
   }
 }
 
+function diaryEntrySort(a, b) {
+  const kindDiff = (a.kind || '').localeCompare(b.kind || '');
+  if (kindDiff) return kindDiff;
+  return a.title.localeCompare(b.title, undefined, { sensitivity:'base' });
+}
+
+function diaryEntryCardHTML(entry) {
+  const p = PRIO[entry.priority] || PRIO.medium;
+  const kindLabel = entry.kind === 'symptom' ? 'Symptom' : 'Food';
+  const measureLabel = entry.kind === 'symptom' ? 'Intensity' : 'Amount';
+  const notesHTML = entry.notes ? `<div class="t-notes">${escHtml(entry.notes)}</div>` : '';
+  let meta = `<span class="p-badge" style="background:${p.bg};color:${p.color}">${measureLabel}: ${p.label}</span>`;
+  if (entry.type === 'recurring') meta += `<span class="rec-badge">🔄 every ${entry.recurringDays}d</span>`;
+  return `<div class="t-card" style="border-left-color:${p.dot}">
+    <div class="t-main" onclick="editDiaryEntry('${entry.id}')">
+      <div style="font-size:20px;flex-shrink:0">${entry.kind === 'symptom' ? '⚕️' : '🍽️'}</div>
+      <div style="flex:1;min-width:0">
+        <div class="t-title">${escHtml(entry.title)}</div>
+        <div class="t-meta"><span class="src-type-chip">${kindLabel}</span>${meta}</div>
+        ${notesHTML}
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderDiaryPanel(ds) {
+  document.getElementById('panel-prog-section').style.display = 'none';
+  const entries = diaryEntries.filter(e => e.date === ds).sort(diaryEntrySort);
+  const foods = entries.filter(e => e.kind === 'food');
+  const symptoms = entries.filter(e => e.kind === 'symptom');
+  const list = document.getElementById('panel-task-list');
+  let html = '';
+  if (!foods.length && !symptoms.length) {
+    html = `<div class="empty-state"><div class="empty-icon">🍽️</div><div class="empty-title">Nothing logged yet</div><div class="empty-sub">Add food or symptoms below</div></div>`;
+  } else {
+    html += `<div class="section-divider">🍽️ Food</div>` + (foods.length ? foods.map(diaryEntryCardHTML).join('') : `<div class="empty-sub" style="padding:4px 6px 12px">No food logged</div>`);
+    html += `<div class="section-divider">⚕️ Symptoms</div>` + (symptoms.length ? symptoms.map(diaryEntryCardHTML).join('') : `<div class="empty-sub" style="padding:4px 6px 12px">No symptoms logged</div>`);
+  }
+  list.innerHTML = html;
+  document.getElementById('panel-actions').innerHTML = `<div style="display:flex;gap:8px;margin:0 16px 16px">
+    <button class="add-task-btn" style="margin:0;flex:1;border-color:#0d9488;color:#0f766e" onclick="openDiaryForm(null, currentSelDay, 'food')">+ Add Food</button>
+    <button class="add-task-btn" style="margin:0;flex:1;border-color:#dc2626;color:#b91c1c" onclick="openDiaryForm(null, currentSelDay, 'symptom')">+ Add Symptom</button>
+  </div>`;
+}
+
 // ─── BACKLOG ──────────────────────────────────────────────────────────────────
 function renderBacklog() {
-  const bl = tasks.filter(t => t.type === 'general').sort((a,b) => P_ORDER.indexOf(a.priority)-P_ORDER.indexOf(b.priority));
-  const pending = bl.filter(t => !t.completed), done = bl.filter(t => t.completed);
-  let inner = '';
-  if (pending.length === 0 && done.length === 0) {
-    inner = `<div class="empty-state"><div class="empty-icon">🌟</div><div class="empty-title">Backlog is clear!</div><div class="empty-sub">Add tasks with no specific date</div></div>`;
+  let inner = `<div class="tabs" style="padding:12px 16px 0">
+    <button class="tab-btn ${backlogMode==='tasks'?'active':''}" style="color:${backlogMode==='tasks'?'#1e3a5f':'#64748b'};border-color:#cbd5e1" onclick="backlogMode='tasks';renderBacklog()">Tasks</button>
+    <button class="tab-btn ${backlogMode==='diary'?'active':''}" style="color:${backlogMode==='diary'?'#0f766e':'#64748b'};border-color:#cbd5e1" onclick="backlogMode='diary';renderBacklog()">Diary Favorites</button>
+  </div>`;
+  if (backlogMode === 'diary') {
+    const favorites = diaryEntries.filter(e => e.type === 'general').sort(diaryEntrySort);
+    const foods = favorites.filter(e => e.kind === 'food');
+    const symptoms = favorites.filter(e => e.kind === 'symptom');
+    if (!favorites.length) {
+      inner += `<div class="empty-state"><div class="empty-icon">🍽️</div><div class="empty-title">No diary favorites yet</div><div class="empty-sub">Add favorite foods or symptoms here for quick reuse</div></div>`;
+    } else {
+      inner += `<div class="section-divider">🍽️ Foods</div>` + foods.map(diaryEntryCardHTML).join('');
+      inner += `<div class="section-divider">⚕️ Symptoms</div>` + symptoms.map(diaryEntryCardHTML).join('');
+    }
+    inner += `<div style="display:flex;gap:8px;margin:0 16px 16px">
+      <button class="add-task-btn" style="margin:0;flex:1" onclick="openDiaryForm(null, '', 'food')">+ Add Food Favorite</button>
+      <button class="add-task-btn" style="margin:0;flex:1" onclick="openDiaryForm(null, '', 'symptom')">+ Add Symptom Favorite</button>
+    </div>`;
   } else {
-    inner += pending.map(t => taskCardHTML(t, {showMove:true})).join('');
-    if (done.length > 0) inner += `<div class="section-divider">✓ Completed</div>` + done.map(t => taskCardHTML(t, {})).join('');
+    const bl = tasks.filter(t => t.type === 'general').sort(taskPanelSort);
+    const pending = bl.filter(t => !t.completed), done = bl.filter(t => t.completed);
+    if (pending.length === 0 && done.length === 0) {
+      inner += `<div class="empty-state"><div class="empty-icon">🌟</div><div class="empty-title">Backlog is clear!</div><div class="empty-sub">Add tasks with no specific date</div></div>`;
+    } else {
+      inner += pending.map(t => taskCardHTML(t, {showMove:true})).join('');
+      if (done.length > 0) inner += `<div class="section-divider">✓ Completed</div>` + done.map(t => taskCardHTML(t, {})).join('');
+    }
+    inner += `<button class="add-task-btn" style="margin:0 16px 16px;display:block;width:calc(100% - 32px)" onclick="openForm(null,'')">+ Add Backlog Task</button>`;
   }
   document.getElementById('view-backlog').innerHTML = `<div class="bl-box">
-    <div class="bl-hdr"><div class="bl-title">📦 Backlog</div><div class="bl-sub">No deadline — do when you have time. Use "Assign to date" to schedule.</div></div>
-    <div class="bl-body">${inner}</div>
-    <button class="add-task-btn" style="margin:0 16px 16px;display:block;width:calc(100% - 32px)" onclick="openForm(null,'')">+ Add Backlog Task</button>
+    <div class="bl-hdr"><div class="bl-title">📦 Backlog</div><div class="bl-sub">Tasks and reusable diary favorites.</div></div>
+    <div class="bl-body" style="padding:0 0 12px">${inner}</div>
   </div>`;
   updateBacklogBadge();
 }
@@ -817,30 +1091,15 @@ function taskCardHTML(t, {showBacklog=false, showMove=false}) {
   const titleCls = t.completed ? 't-title done' : 't-title';
   let meta = `<span class="p-badge" style="background:${p.bg};color:${p.color}">${p.label}</span>`;
   if (t.type === 'recurring') meta += `<span class="rec-badge">🔄 every ${t.recurringDays}d</span>`;
-  if (t.completedAt) meta += `<span class="done-badge">done ${t.completedAt}</span>`;
-  let expandActs = `<button class="e-btn" onclick="editTask('${t.id}')">✏️ Edit</button>`;
-  if (showBacklog) expandActs += `<button class="e-btn" onclick="moveToBacklog('${t.id}')">📦 → Backlog</button>`;
-  if (showMove)    expandActs += `<button class="e-btn" onclick="showAssignDate('${t.id}')">📅 Assign to date</button>`;
-  expandActs += `<button class="e-btn danger" onclick="deleteTask('${t.id}')">🗑️ Delete</button>`;
   const notesHTML = t.notes ? `<div class="t-notes">${escHtml(t.notes)}</div>` : '';
-  const assignRow = `<div class="date-assign-row" id="assign-${t.id}" style="display:none">
-    <input type="date" id="assign-date-${t.id}" value="${todayDS()}"/>
-    <button class="e-btn" style="background:#1e3a5f;color:#fff;border:none" onclick="doAssignDate('${t.id}')">Assign ✓</button>
-    <button class="e-btn" onclick="hideAssignDate('${t.id}')">Cancel</button>
-  </div>`;
   return `<div class="t-card" id="card-${t.id}" style="border-left-color:${t.completed?'#d1d5db':p.dot}">
-    <div class="t-main">
-      <button class="t-check" style="background:${checkBg};border-color:${p.dot}" onclick="toggleTask('${t.id}')">${checkMark}</button>
+    <div class="t-main" onclick="editTask('${t.id}')">
+      <button class="t-check" style="background:${checkBg};border-color:${p.dot}" onclick="event.stopPropagation();toggleTask('${t.id}')">${checkMark}</button>
       <div style="flex:1;min-width:0">
         <div class="${titleCls}">${escHtml(t.title)}</div>
         <div class="t-meta">${meta}</div>
+        ${notesHTML}
       </div>
-      <button class="more-btn" onclick="toggleExpand('${t.id}')">•••</button>
-    </div>
-    <div class="t-expand" id="expand-${t.id}" style="display:none">
-      ${notesHTML}
-      <div class="exp-acts">${expandActs}</div>
-      ${assignRow}
     </div>
   </div>`;
 }
@@ -848,36 +1107,42 @@ function taskCardHTML(t, {showBacklog=false, showMove=false}) {
 function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 // ─── TASK ACTIONS ─────────────────────────────────────────────────────────────
-function toggleExpand(id) {
-  const el = document.getElementById('expand-' + id);
-  el.style.display = el.style.display === 'none' ? '' : 'none';
-}
-
 async function toggleTask(id) {
-  const t = tasks.find(x => x.id === id);
-  if (!t) return;
-  if (!t.completed) {
-    t.completed = true; t.completedAt = todayDS();
-    await fbSave(t);
-    if (t.type === 'recurring' && t.recurringDays) {
-      const base = t.date || todayDS();
-      const childId = genId();
-      t.spawnedId = childId;
-      await fbSave(t);
-      const child = {id:childId, title:t.title, type:'recurring', date:addDays(base, t.recurringDays),
-        priority:t.priority, recurringDays:t.recurringDays, notes:t.notes||'',
-        autoReschedule: t.autoReschedule || false,
-        completed:false, completedAt:null, createdAt:new Date().toISOString()};
-      await fbSave(child);
+  if (pendingToggleIds.has(id)) return;
+  pendingToggleIds.add(id);
+  try {
+    const t = tasks.find(x => x.id === id);
+    if (!t) return;
+    if (!t.completed) {
+      t.completed = true; t.completedAt = t.date || todayDS();
+      await fbPatch(t.id, { completed: true, completedAt: t.completedAt });
+      if (t.type === 'recurring' && t.recurringDays) {
+        const base = t.date || todayDS();
+        const childDate = addDays(base, t.recurringDays);
+        const existingChild = tasks.find(x => x.parentRecurringId === t.id && x.date === childDate && x.type === 'recurring');
+        const childId = existingChild ? existingChild.id : genId();
+        t.spawnedId = childId;
+        await fbPatch(t.id, { spawnedId: childId });
+        if (!existingChild) {
+          const child = {id:childId, title:t.title, type:'recurring', date:childDate,
+            parentRecurringId:t.id,
+            priority:t.priority, recurringDays:t.recurringDays, notes:t.notes||'',
+            autoReschedule: t.autoReschedule || false,
+            completed:false, completedAt:null, createdAt:new Date().toISOString()};
+          await fbSave(child);
+        }
+      }
+    } else {
+      if (t.spawnedId) {
+        const child = tasks.find(x => x.id === t.spawnedId);
+        if (child && !child.completed) await fbDelete(child.id);
+        await fbPatch(t.id, { spawnedId: null });
+      }
+      t.completed = false; t.completedAt = null;
+      await fbPatch(t.id, { completed: false, completedAt: null });
     }
-  } else {
-    if (t.spawnedId) {
-      const child = tasks.find(x => x.id === t.spawnedId);
-      if (child && !child.completed) await fbDelete(child.id);
-      delete t.spawnedId;
-    }
-    t.completed = false; t.completedAt = null;
-    await fbSave(t);
+  } finally {
+    pendingToggleIds.delete(id);
   }
 }
 
@@ -913,7 +1178,10 @@ function editTask(id) {
 function rerender() {
   if (currentView === 'calendar') {
     renderCalendar();
-    if (currentSelDay) renderPanelTasks(currentSelDay);
+    if (currentSelDay && panelMode === 'tasks') renderPanelTasks(currentSelDay);
+  } else if (currentView === 'diary') {
+    renderDiaryCalendar();
+    if (currentSelDay && panelMode === 'diary') renderDiaryPanel(currentSelDay);
   } else {
     renderBacklog();
   }
@@ -926,11 +1194,44 @@ function updateBacklogBadge() {
 }
 
 // ─── TASK FORM ────────────────────────────────────────────────────────────────
+function applyTaskFormLabels() {
+  document.getElementById('f-title').placeholder = 'What needs to be done?';
+  document.querySelector('#f-title').previousElementSibling.textContent = 'Task name *';
+  document.getElementById('f-date-label').textContent = formType === 'recurring' ? 'Starting date' : 'Date';
+  document.querySelector('.priority-btns').previousElementSibling.textContent = 'Priority / Urgency';
+  document.getElementById('p-critical').textContent = 'Critical';
+  document.getElementById('p-high').textContent = 'High';
+  document.getElementById('p-medium').textContent = 'Medium';
+  document.getElementById('p-low').textContent = 'Low';
+  document.getElementById('type-daily').innerHTML = '<span class="type-icon">📅</span><span class="type-lbl">Specific day</span>';
+  document.getElementById('type-recurring').innerHTML = '<span class="type-icon">🔄</span><span class="type-lbl">Recurring</span>';
+  document.getElementById('type-general').innerHTML = '<span class="type-icon">📦</span><span class="type-lbl">Backlog</span>';
+}
+
+function applyDiaryFormLabels(kind) {
+  const isSymptom = kind === 'symptom';
+  document.getElementById('f-title').placeholder = isSymptom ? 'What symptom did you experience?' : 'What did you eat?';
+  document.querySelector('#f-title').previousElementSibling.textContent = isSymptom ? 'Symptom *' : 'Food *';
+  document.getElementById('f-date-label').textContent = formType === 'recurring' ? 'Starting date' : 'Date';
+  document.querySelector('.priority-btns').previousElementSibling.textContent = isSymptom ? 'Intensity' : 'Amount';
+  document.getElementById('p-critical').textContent = isSymptom ? 'Severe' : 'Large';
+  document.getElementById('p-high').textContent = isSymptom ? 'Strong' : 'Full';
+  document.getElementById('p-medium').textContent = isSymptom ? 'Moderate' : 'Moderate';
+  document.getElementById('p-low').textContent = isSymptom ? 'Mild' : 'Small';
+  document.getElementById('type-daily').innerHTML = '<span class="type-icon">📅</span><span class="type-lbl">Specific day</span>';
+  document.getElementById('type-recurring').innerHTML = '<span class="type-icon">🔄</span><span class="type-lbl">Recurring</span>';
+  document.getElementById('type-general').innerHTML = '<span class="type-icon">⭐</span><span class="type-lbl">Favorite</span>';
+}
+
 function openForm(task, defaultDate) {
+  formScope = 'task';
+  editDiaryId = null;
+  applyTaskFormLabels();
   editTaskId = task ? task.id : null;
   document.getElementById('modal-title').textContent = task ? '✏️ Edit Task' : '＋ New Task';
   document.getElementById('save-btn').textContent = task ? 'Save Changes' : 'Add Task';
   document.getElementById('f-title').value = task ? task.title : '';
+  renderTaskTitleSuggestions(task ? task.title : '');
   document.getElementById('f-notes').value = task ? (task.notes || '') : '';
   document.getElementById('f-date').value = task ? (task.date || defaultDate || todayDS()) : (defaultDate || todayDS());
   const type = task ? task.type : (defaultDate ? 'daily' : 'general');
@@ -940,18 +1241,66 @@ function openForm(task, defaultDate) {
   const rd = task ? (task.recurringDays || 7) : 7;
   formRecDays = rd;
   document.getElementById('f-rec-days').value = rd;
+  document.getElementById('delete-btn').style.display = task ? '' : 'none';
   syncIntervalBtns();
   updateSaveBtn();
   document.getElementById('form-backdrop').style.display = '';
   document.getElementById('task-modal').style.display = '';
   _pushModal(_closeFormUI);
-  setTimeout(() => document.getElementById('f-title').focus(), 100);
+  if (!task) setTimeout(() => document.getElementById('f-title').focus(), 100);
+}
+function openDiaryForm(entry, defaultDate, kind) {
+  formScope = 'diary';
+  editTaskId = null;
+  editDiaryId = entry ? entry.id : null;
+  diaryEntryKind = entry ? entry.kind : kind;
+  applyDiaryFormLabels(diaryEntryKind);
+  document.getElementById('modal-title').textContent = entry ? (diaryEntryKind === 'symptom' ? '✏️ Edit Symptom' : '✏️ Edit Food') : (diaryEntryKind === 'symptom' ? '⚕️ Log Symptom' : '🍽️ Log Food');
+  document.getElementById('save-btn').textContent = entry ? 'Save Changes' : (diaryEntryKind === 'symptom' ? 'Save Symptom' : 'Save Food');
+  document.getElementById('f-title').value = entry ? entry.title : '';
+  renderTaskTitleSuggestions(entry ? entry.title : '');
+  document.getElementById('f-notes').value = entry ? (entry.notes || '') : '';
+  document.getElementById('f-date').value = entry ? (entry.date || defaultDate || todayDS()) : (defaultDate || todayDS());
+  setType(entry ? entry.type : (defaultDate ? 'daily' : 'general'), true);
+  setPriority(entry ? (entry.priority || 'medium') : 'medium', true);
+  formRecDays = entry ? (entry.recurringDays || 7) : 7;
+  document.getElementById('f-rec-days').value = formRecDays;
+  document.getElementById('delete-btn').style.display = entry ? '' : 'none';
+  syncIntervalBtns();
+  updateSaveBtn();
+  document.getElementById('form-backdrop').style.display = '';
+  document.getElementById('task-modal').style.display = '';
+  _pushModal(_closeFormUI);
+  if (!entry) setTimeout(() => document.getElementById('f-title').focus(), 100);
+}
+
+function editDiaryEntry(id) {
+  const entry = diaryEntries.find(x => x.id === id);
+  if (!entry) return;
+  openDiaryForm(entry, entry.date || '', entry.kind);
+}
+
+async function deleteEditingTask() {
+  if (formScope === 'diary') {
+    if (!editDiaryId) return;
+    if (!confirm('Delete this diary entry? This cannot be undone.')) return;
+    const id = editDiaryId;
+    closeForm();
+    await fbDeleteDiary(id);
+    return;
+  }
+  if (!editTaskId) return;
+  if (!confirm('Delete this task? This cannot be undone.')) return;
+  const id = editTaskId;
+  closeForm();
+  await fbDelete(id);
 }
 
 function _closeFormUI() {
   document.getElementById('form-backdrop').style.display = 'none';
   document.getElementById('task-modal').style.display = 'none';
   editTaskId = null;
+  editDiaryId = null;
 }
 
 function closeForm() {
@@ -960,6 +1309,10 @@ function closeForm() {
   } else {
     _closeFormUI();
   }
+}
+
+function openDateInputPicker(el) {
+  if (el && typeof el.showPicker === 'function') el.showPicker();
 }
 
 function setType(type) {
@@ -987,7 +1340,7 @@ function setInterval(d) { formRecDays = d; document.getElementById('f-rec-days')
 function syncIntervalBtns() {
   const d = parseInt(document.getElementById('f-rec-days').value) || 1;
   formRecDays = d;
-  const presets = [1,2,7,14,30];
+  const presets = [1,2,7,14,21,30];
   document.querySelectorAll('#interval-btns .int-btn').forEach((btn,i) => {
     btn.className = 'int-btn' + (presets[i] === d ? ' active' : '');
   });
@@ -1005,6 +1358,21 @@ async function saveTask() {
   const recDays = formType === 'recurring' ? (parseInt(document.getElementById('f-rec-days').value) || 7) : null;
   const autoReschedule = formType !== 'general'; // always on for dated tasks
 
+  if (formScope === 'diary') {
+    if (editDiaryId) {
+      const entry = diaryEntries.find(x => x.id === editDiaryId);
+      if (entry) {
+        entry.title=title; entry.kind=diaryEntryKind; entry.type=formType; entry.date=date; entry.priority=formPriority; entry.recurringDays=recDays; entry.notes=notes; entry.autoReschedule=autoReschedule;
+        await fbSaveDiary(entry);
+      }
+    } else {
+      const entry = {id:genId(), title, kind:diaryEntryKind, type:formType, date, priority:formPriority, recurringDays:recDays, notes, autoReschedule, createdAt:new Date().toISOString()};
+      await fbSaveDiary(entry);
+    }
+    closeForm();
+    return;
+  }
+
   if (editTaskId) {
     const t = tasks.find(x => x.id === editTaskId);
     if (t) {
@@ -1021,11 +1389,17 @@ async function saveTask() {
 // ─── SEARCH ───────────────────────────────────────────────────────────────────
 function openSearch() {
   document.getElementById('search-panel').classList.add('open');
+  renderSearchSuggestions(document.getElementById('search-input').value);
+  _pushModal(_closeSearchUI);
   setTimeout(() => document.getElementById('search-input').focus(), 100);
 }
-function closeSearch() {
+function _closeSearchUI() {
   document.getElementById('search-panel').classList.remove('open');
   document.getElementById('search-input').value = '';
+}
+function closeSearch() {
+  if (_modalStack.length && _modalStack[_modalStack.length-1] === _closeSearchUI) _popModal();
+  else _closeSearchUI();
 }
 function highlight(text, query) {
   if (!query) return escHtml(text);
@@ -1033,31 +1407,94 @@ function highlight(text, query) {
   const safeQ = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   return safe.replace(new RegExp(safeQ, 'gi'), m => `<mark>${m}</mark>`);
 }
+function renderSearchSuggestions(query = '') {
+  const suggestionsEl = document.getElementById('search-suggestions');
+  if (!suggestionsEl) return;
+  const q = query.trim().toLowerCase();
+  const seen = new Set();
+  const suggestions = tasks
+    .filter(t => t.title && (!q || t.title.toLowerCase().includes(q)))
+    .sort((a,b) => {
+      if (a.completed !== b.completed) return a.completed ? 1 : -1;
+      if (a.date && b.date) return a.date > b.date ? 1 : -1;
+      if (a.date) return -1;
+      if (b.date) return 1;
+      return a.title.localeCompare(b.title);
+    })
+    .map(t => t.title)
+    .filter(title => {
+      const key = title.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, 10);
+  suggestionsEl.innerHTML = suggestions.map(title => `<option value="${escHtml(title)}"></option>`).join('');
+}
+function renderTaskTitleSuggestions(query = '') {
+  const suggestionsEl = document.getElementById('task-title-suggestions');
+  if (!suggestionsEl) return;
+  const q = query.trim().toLowerCase();
+  const currentId = editTaskId;
+  const seen = new Set();
+  const suggestions = tasks
+    .filter(t => t.id !== currentId && t.title && (!q || t.title.toLowerCase().includes(q)))
+    .sort((a,b) => a.title.localeCompare(b.title, undefined, { sensitivity:'base' }))
+    .map(t => t.title)
+    .filter(title => {
+      const key = title.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, 10);
+  suggestionsEl.innerHTML = suggestions.map(title => `<option value="${escHtml(title)}"></option>`).join('');
+}
+function searchDateSort(a, b, newestFirst = false) {
+  if (a.date && b.date) return newestFirst ? (b.date > a.date ? 1 : b.date < a.date ? -1 : 0) : (a.date > b.date ? 1 : a.date < b.date ? -1 : 0);
+  if (a.date) return -1;
+  if (b.date) return 1;
+  return a.title.localeCompare(b.title);
+}
+function searchResultHTML(t, q) {
+  const pr = PRIO[t.priority] || PRIO.medium;
+  let dateChip = t.type === 'general' ? `<span class="src-type-chip">📦 Backlog</span>` : t.date ? `<span class="src-date-chip">📅 ${fmtDate(t.date)}</span>` : '';
+  if (t.type === 'recurring') dateChip += `<span class="src-type-chip">🔄 every ${t.recurringDays}d</span>`;
+  const clickAction = t.date ? `onSearchResultClick('${t.id}','${t.date}')` : `onSearchResultClickBacklog('${t.id}')`;
+  return `<div class="search-result-card" style="border-left-color:${t.completed?'#d1d5db':pr.dot}" onclick="${clickAction}">
+    <div class="${t.completed?'src-title done':'src-title'}">${highlight(t.title, q)}</div>
+    <div class="src-meta"><span class="p-badge" style="background:${pr.bg};color:${pr.color}">${pr.label}</span>${dateChip}${t.completed?'<span class="src-type-chip">✓ Done</span>':''}</div>
+    ${t.notes ? `<div class="src-notes">${highlight(t.notes, q)}</div>` : ''}
+  </div>`;
+}
 function runSearch() {
   const q = document.getElementById('search-input').value.trim().toLowerCase();
   const resultsEl = document.getElementById('search-results');
+  renderSearchSuggestions(q);
   if (!q) { resultsEl.innerHTML = `<div class="search-empty"><div class="search-empty-icon">🔍</div><div class="search-empty-title">Search your tasks</div><div class="search-empty-sub">Type anything to find tasks by name or notes</div></div>`; return; }
-  const matches = tasks.filter(t => t.title.toLowerCase().includes(q) || (t.notes && t.notes.toLowerCase().includes(q)))
-    .sort((a,b) => { if (a.completed !== b.completed) return a.completed ? 1 : -1; if (a.date && b.date) return a.date > b.date ? 1 : -1; if (a.date) return -1; if (b.date) return 1; return 0; });
+  const matches = tasks.filter(t => t.title.toLowerCase().includes(q) || (t.notes && t.notes.toLowerCase().includes(q)));
   if (matches.length === 0) { resultsEl.innerHTML = `<div class="search-empty"><div class="search-empty-icon">🤷</div><div class="search-empty-title">No results for "${escHtml(q)}"</div><div class="search-empty-sub">Try a different search term</div></div>`; return; }
+  const pending = matches.filter(t => !t.completed).sort((a,b) => searchDateSort(a, b, false));
+  const completed = matches.filter(t => t.completed).sort((a,b) => searchDateSort(a, b, true));
   let html = `<div class="search-count">${matches.length} result${matches.length !== 1 ? 's' : ''}</div>`;
-  html += matches.map(t => {
-    const pr = PRIO[t.priority] || PRIO.medium;
-    let dateChip = t.type === 'general' ? `<span class="src-type-chip">📦 Backlog</span>` : t.date ? `<span class="src-date-chip">📅 ${fmtDate(t.date)}</span>` : '';
-    if (t.type === 'recurring') dateChip += `<span class="src-type-chip">🔄 every ${t.recurringDays}d</span>`;
-    const clickAction = t.date ? `onSearchResultClick('${t.id}','${t.date}')` : `onSearchResultClickBacklog('${t.id}')`;
-    return `<div class="search-result-card" style="border-left-color:${t.completed?'#d1d5db':pr.dot}" onclick="${clickAction}">
-      <div class="${t.completed?'src-title done':'src-title'}">${highlight(t.title, q)}</div>
-      <div class="src-meta"><span class="p-badge" style="background:${pr.bg};color:${pr.color}">${pr.label}</span>${dateChip}${t.completed?'<span class="src-type-chip">✓ Done</span>':''}</div>
-      ${t.notes ? `<div class="src-notes">${highlight(t.notes, q)}</div>` : ''}
-    </div>`;
-  }).join('');
+  if (pending.length) html += `<div class="section-divider">To do</div>` + pending.map(t => searchResultHTML(t, q)).join('');
+  if (completed.length) html += `<div class="section-divider">✓ Completed</div>` + completed.map(t => searchResultHTML(t, q)).join('');
   resultsEl.innerHTML = html;
 }
 function onSearchResultClick(id, date) {
-  closeSearch(); calDate = new Date(date + 'T12:00:00'); switchView('calendar'); setTimeout(() => openDay(date), 50);
+  closeSearch();
+  calDate = new Date(date + 'T12:00:00');
+  switchView('calendar');
+  setTimeout(() => {
+    openDay(date);
+    setTimeout(() => editTask(id), 80);
+  }, 50);
 }
-function onSearchResultClickBacklog(id) { closeSearch(); switchView('backlog'); }
+function onSearchResultClickBacklog(id) {
+  closeSearch();
+  switchView('backlog');
+  setTimeout(() => editTask(id), 80);
+}
 
 // ─── TOAST ────────────────────────────────────────────────────────────────────
 let toastTimer = null;
@@ -1074,10 +1511,10 @@ async function runRescheduleCheck() {
   if (!currentUser) return;
   const td = todayDS();
   const overdue = tasks.filter(t =>
-    t.autoReschedule && !t.completed && t.date && t.date < td
+    t.autoReschedule && !t.completed && t.date && t.date < td && !pendingToggleIds.has(t.id)
   );
   if (overdue.length) {
-    for (const t of overdue) { t.date = td; await fbSave(t); }
+    for (const t of overdue) { t.date = td; await fbPatch(t.id, { date: td }); }
     const n = overdue.length;
     showToast(`🔁 ${n} overdue task${n > 1 ? 's' : ''} rescheduled to today`);
   }
@@ -1146,7 +1583,9 @@ function closeNotifSettings() {
 
 function saveNotifSettings() {
   const enabled = document.getElementById('notif-enabled').checked;
-  localStorage.setItem(NOTIF_HOUR_KEY, document.getElementById('notif-hour').value);
+  const hour = document.getElementById('notif-hour').value;
+  localStorage.setItem(NOTIF_HOUR_KEY, hour);
+  if (currentUser) window._saveNotifHour(currentUser.uid, parseInt(hour)).catch(() => {});
   if (enabled && Notification.permission !== 'granted') {
     Notification.requestPermission().then(perm => {
       const granted = perm === 'granted';
@@ -1218,6 +1657,51 @@ function handleNotifUrlParams() {
   }, 1500);
 }
 
+// ─── SWIPE GESTURES (scoped to avoid interfering with taps) ───────────────────
+let swipeState = null;
+const SWIPE_MIN_X = 65, SWIPE_MAX_Y = 45;
+
+function swipeStart(mode, e, day = null) {
+  if (!e.touches || !e.touches.length) return;
+  const t = e.touches[0];
+  swipeState = { mode, x: t.clientX, y: t.clientY, day };
+}
+function swipeEnd(e) {
+  if (!swipeState || !e.changedTouches || !e.changedTouches.length) return;
+  const t = e.changedTouches[0];
+  const dx = t.clientX - swipeState.x;
+  const dy = t.clientY - swipeState.y;
+  if (Math.abs(dx) < SWIPE_MIN_X || Math.abs(dy) > SWIPE_MAX_Y) { swipeState = null; return; }
+  if (swipeState.mode === 'month') {
+    if (currentView === 'diary') (dx < 0 ? nextDiaryMonth() : prevDiaryMonth());
+    else (dx < 0 ? nextMonth() : prevMonth());
+  }
+  if (swipeState.mode === 'day' && swipeState.day) {
+    const nextDay = addDays(swipeState.day, dx < 0 ? 1 : -1);
+    if (panelMode === 'diary') openDiaryDay(nextDay); else openDay(nextDay);
+  }
+  if (swipeState.mode === 'tab') {
+    const order = ['calendar', 'diary', 'backlog', 'search'];
+    const current = document.getElementById('search-panel').classList.contains('open') ? 'search' : currentView;
+    const i = order.indexOf(current);
+    const next = dx < 0 ? (i + 1) % order.length : (i - 1 + order.length) % order.length;
+    const targetView = order[next];
+    if (targetView === 'search') openSearch(); else { closeSearch(); switchView(targetView); }
+  }
+  swipeState = null;
+}
+
+document.getElementById('main').addEventListener('touchstart', e => {
+  const target = e.target && e.target.nodeType === 1 ? e.target : null;
+  if (!target || target.closest('.cal-box')) return; // calendar area reserved for month swipe
+  swipeStart('tab', e);
+}, { passive: true });
+document.getElementById('main').addEventListener('touchend', swipeEnd, { passive: true });
+document.getElementById('search-panel').addEventListener('touchstart', e => swipeStart('tab', e), { passive: true });
+document.getElementById('search-panel').addEventListener('touchend', swipeEnd, { passive: true });
+document.getElementById('day-panel').addEventListener('touchstart', e => swipeStart('day', e, currentSelDay), { passive: true });
+document.getElementById('day-panel').addEventListener('touchend', swipeEnd, { passive: true });
+
 // ─── KEYBOARD ─────────────────────────────────────────────────────────────────
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
@@ -1228,6 +1712,10 @@ document.addEventListener('keydown', e => {
     if (document.activeElement.tagName !== 'TEXTAREA') saveTask();
   }
 });
+
+if (localStorage.getItem('flowdo_was_logged_in') === 'true') {
+  rerender();
+}
 </script>
 </body>
 </html>
