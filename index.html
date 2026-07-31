@@ -25,13 +25,15 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#1e3a5f!import
 ::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:4px;}
 
 /* ── AUTH / LOADING SCREENS ── */
-#auth-screen{position:fixed;inset:0;background:linear-gradient(135deg,#1e3a5f,#0f2440);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:1000;gap:24px;}
+#auth-screen{position:fixed;inset:0;background:linear-gradient(135deg,#1e3a5f,#0f2440);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:1000;gap:18px;}
 #auth-screen .logo{width:72px;height:72px;border-radius:18px;background:linear-gradient(135deg,#f59e0b,#f97316);display:flex;align-items:center;justify-content:center;font-size:36px;color:#fff;font-weight:900;box-shadow:0 4px 20px rgba(245,158,11,.4);}
 #auth-screen h1{font-size:32px;font-weight:900;color:#fff;letter-spacing:-.5px;}
-#auth-screen p{font-size:14px;color:#7fa8cc;text-align:center;max-width:260px;line-height:1.6;}
-.google-btn{display:flex;align-items:center;gap:12px;padding:14px 28px;border-radius:14px;border:none;background:#fff;color:#374151;font-size:15px;font-weight:800;box-shadow:0 4px 16px rgba(0,0,0,.25);cursor:pointer;font-family:'Nunito',sans-serif;}
+#auth-screen p{font-size:14px;color:#7fa8cc;text-align:center;max-width:260px;line-height:1.6;margin-bottom:6px;}
+.google-btn{display:flex;align-items:center;gap:12px;padding:14px 28px;border-radius:14px;border:none;background:#fff;color:#374151;font-size:15px;font-weight:800;box-shadow:0 4px 16px rgba(0,0,0,.25);cursor:pointer;font-family:'Nunito',sans-serif;width:240px;justify-content:center;}
 .google-btn:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(0,0,0,.3);}
 .google-btn svg{width:22px;height:22px;flex-shrink:0;}
+.guest-btn{display:flex;align-items:center;justify-content:center;gap:12px;padding:12px 28px;border-radius:14px;border:1.5px solid rgba(255,255,255,.2);background:transparent;color:#cbd5e1;font-size:14px;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif;width:240px;}
+.guest-btn:hover{background:rgba(255,255,255,.1);color:#fff;border-color:rgba(255,255,255,.4);transform:translateY(-1px);}
 #loading-screen{position:fixed;inset:0;background:#f4f1ec;display:flex;align-items:center;justify-content:center;z-index:999;flex-direction:column;gap:12px;}
 .spinner{width:36px;height:36px;border:3px solid #e2e8f0;border-top-color:#1e3a5f;border-radius:50%;animation:spin .8s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
@@ -152,7 +154,9 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#1e3a5f!import
 .empty-sub{font-size:13px;color:#9ca3af;margin-top:4px;}
 .add-task-btn{padding:12px;border-radius:10px;border:2px dashed #cbd5e1;background:transparent;color:#94a3b8;font-size:14px;font-weight:700;margin:0 16px 16px;flex-shrink:0;}
 .add-task-btn:hover{border-color:#1e3a5f;color:#1e3a5f;background:#f0f7ff;}
-.diary-theme .month-nav,.diary-theme .panel-hdr,.modal.diary-theme .modal-hdr{background:linear-gradient(135deg,#7c2d12,#431407);}
+
+/* DIARY THEME */
+.diary-theme .panel-hdr, .modal.diary-theme .modal-hdr {background:linear-gradient(135deg,#7c2d12,#431407);}
 .diary-theme .m-title{color:#7c2d12;}
 .diary-theme .m-arrow:hover{background:#fff7ed;border-color:#ea580c;}
 .diary-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 16px 16px;flex-shrink:0;}
@@ -188,6 +192,27 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#1e3a5f!import
 .bl-title{font-size:22px;font-weight:900;color:#fff;margin-bottom:4px;}
 .bl-sub{font-size:13px;color:#7fa8cc;}
 .bl-body{padding:12px 16px;display:flex;flex-direction:column;gap:8px;}
+
+/* PANTRY (INVENTORY) */
+.inv-box{background:#fff;border-radius:18px;box-shadow:0 4px 24px rgba(0,0,0,.07);overflow:hidden;}
+.inv-hdr{padding:20px;background:linear-gradient(135deg,#1e3a5f,#0f2440);}
+.inv-title{font-size:22px;font-weight:900;color:#fff;margin-bottom:4px;}
+.inv-sub{font-size:13px;color:#7fa8cc;}
+.inv-body{padding:12px 16px;display:flex;flex-direction:column;gap:8px;}
+.inv-card{background:#fff;border:1px solid #e8e3da;border-left:4px solid #10b981;border-radius:10px;padding:12px;display:flex;align-items:center;justify-content:space-between;gap:10px;transition:box-shadow .15s;cursor:pointer;}
+.inv-card:hover{box-shadow:0 2px 10px rgba(0,0,0,.08);}
+.inv-card.low-stock{border-left-color:#f59e0b;background:#fffbeb;}
+.inv-card.depleted{border-left-color:#9ca3af;background:#f8fafc;}
+.inv-info{flex:1;min-width:0;}
+.inv-name{font-size:15px;font-weight:800;color:#1e293b;line-height:1.2;}
+.inv-card.depleted .inv-name{text-decoration:line-through;color:#64748b;}
+.inv-meta{font-size:11px;font-weight:700;color:#64748b;margin-top:4px;display:flex;gap:6px;align-items:center;}
+.inv-badge{padding:2px 6px;border-radius:6px;background:#fef3c7;color:#b45309;font-size:10px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;}
+.stepper{display:flex;align-items:center;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;flex-shrink:0;}
+.step-btn{width:36px;height:36px;border:none;background:transparent;font-size:18px;font-weight:700;color:#374151;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.step-btn:hover{background:#e2e8f0;}
+.step-btn:disabled{opacity:0.3;cursor:not-allowed;}
+.step-val{width:30px;text-align:center;font-size:15px;font-weight:800;color:#1e293b;}
 
 /* MODAL */
 .modal-backdrop{position:fixed;inset:0;background:rgba(15,20,40,.45);z-index:400;backdrop-filter:blur(2px);}
@@ -233,6 +258,36 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#1e3a5f!import
 .toggle-track:before{content:'';position:absolute;width:18px;height:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);}
 .toggle input:checked+.toggle-track:before{transform:translateX(20px);}
 
+/* ── CUSTOM CONFIRMATION MODAL ── */
+#confirm-modal {
+  width: 90%;
+  max-width: 380px;
+  border-radius: 16px;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.3);
+}
+#confirm-modal .modal-body {
+  padding: 24px 20px;
+  text-align: center;
+}
+#confirm-modal p {
+  font-size: 15px;
+  color: #475569;
+  line-height: 1.6;
+}
+#confirm-modal .modal-foot {
+  display: flex;
+  gap: 12px;
+  padding: 16px 20px;
+  justify-content: stretch;
+}
+#confirm-modal .modal-foot button {
+  flex: 1;
+  padding: 11px;
+  font-size: 14px;
+  font-weight: 800;
+  border-radius: 10px;
+}
+
 @media(max-width:480px){
   .m-title{font-size:18px;}
   .dow-cell{font-size:9px;padding:6px 2px;}
@@ -260,29 +315,36 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#1e3a5f!import
     <svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
     Sign in with Google
   </button>
+  <button class="guest-btn" onclick="signInAnonymouslyGuest()">
+    👤 Preview as Guest
+  </button>
 </div>
 
 <!-- App (hidden until auth ready) -->
 <div id="app" style="display:none">
   <header id="app-header">
-    <div class="hdr-left">
-      <div class="logo-mark">✦</div>
-      <div>
-        <div class="app-name">FlowDo</div>
-        <div class="sync-row">
-          <span id="sync-dot"></span>
-          <span id="sync-label">Synced</span>
+    <!-- Top Row: Logo & Avatar -->
+    <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+      <div class="hdr-left">
+        <div class="logo-mark">✦</div>
+        <div>
+          <div class="app-name">FlowDo</div>
+          <div class="sync-row">
+            <span id="sync-dot"></span>
+            <span id="sync-label">Synced</span>
+          </div>
         </div>
       </div>
-    </div>
-    <div class="hdr-right">
-      <div class="tabs">
-        <button class="search-btn" onclick="openSearch()" title="Search tasks">🔍</button>
-        <button class="tab-btn active" id="tab-cal" onclick="switchView('calendar')">📅 Calendar</button>
-        <button class="tab-btn" id="tab-diary" onclick="switchView('diary')">🍽️ Diary</button>
-        <button class="tab-btn" id="tab-bl" onclick="switchView('backlog')">📦 Backlog <span class="tab-badge" id="bl-badge" style="display:none">0</span></button>
-      </div>
       <div id="user-avatar-wrap" onclick="openNotifSettings()"></div>
+    </div>
+    
+    <!-- Bottom Row: Scrollable Tabs -->
+    <div class="tabs" style="width: 100%; margin-top: 8px;">
+      <button class="search-btn" onclick="openSearch()" title="Search tasks">🔍</button>
+      <button class="tab-btn active" id="tab-cal" onclick="switchView('calendar')">📅 Calendar</button>
+      <button class="tab-btn" id="tab-inv" onclick="switchView('inventory')">📦 Pantry</button>
+      <button class="tab-btn" id="tab-bl" onclick="switchView('backlog')">📦 Backlog <span class="tab-badge" id="bl-badge" style="display:none">0</span></button>
+      <button class="tab-btn" id="tab-diary" onclick="switchView('diary')">🍽️ Diary</button>
     </div>
   </header>
 
@@ -290,6 +352,7 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#1e3a5f!import
     <div id="view-calendar"></div>
     <div id="view-diary" style="display:none"></div>
     <div id="view-backlog" style="display:none"></div>
+    <div id="view-inventory" style="display:none"></div>
   </div>
 
   <button id="fab" onclick="fabClick()">+</button>
@@ -353,6 +416,22 @@ if (localStorage.getItem('flowdo_was_logged_in') === 'true') {
   <div class="modal-foot" style="justify-content:space-between">
     <button class="delete-btn" style="margin-right:auto" onclick="signOut()">Sign out</button>
     <button class="cancel-btn" onclick="closeNotifSettings()">Close</button>
+  </div>
+</div>
+
+<!-- Custom Confirmation Modal -->
+<div class="modal-backdrop" id="confirm-backdrop" style="display:none; z-index: 700;" onclick="closeConfirmModal(false)"></div>
+<div class="modal" id="confirm-modal" style="display:none; z-index: 750;">
+  <div class="modal-hdr">
+    <h3 id="confirm-title">Are you sure?</h3>
+    <button class="x-btn" onclick="closeConfirmModal(false)">✕</button>
+  </div>
+  <div class="modal-body">
+    <p id="confirm-message"></p>
+  </div>
+  <div class="modal-foot">
+    <button class="cancel-btn" onclick="closeConfirmModal(false)">Cancel</button>
+    <button class="save-btn" id="confirm-yes-btn" style="background: #dc2626;" onclick="closeConfirmModal(true)">Proceed</button>
   </div>
 </div>
 
@@ -461,14 +540,47 @@ if (localStorage.getItem('flowdo_was_logged_in') === 'true') {
   </div>
 </div>
 
+<!-- Inventory Form Modal -->
+<div class="modal-backdrop" id="inv-form-backdrop" style="display:none" onclick="closeInvForm()"></div>
+<div class="modal" id="inv-modal" style="display:none">
+  <div class="modal-hdr">
+    <h3 id="inv-modal-title">📦 New Inventory Item</h3>
+    <button class="x-btn" onclick="closeInvForm()">✕</button>
+  </div>
+  <div class="modal-body">
+    <div class="form-group">
+      <label class="form-label">Item name *</label>
+      <input class="form-input" id="inv-f-title" placeholder="e.g., Oat bran, Quinoa, Pre-cooked chicken, Cacao powder..." oninput="updateInvSaveBtn()"/>
+    </div>
+    <div class="form-group" style="display:flex; flex-direction:row; gap:16px;">
+      <div style="flex:1;">
+        <label class="form-label">Current Quantity</label>
+        <input type="number" class="form-input" id="inv-f-count" min="0" value="1"/>
+      </div>
+      <div style="flex:1;">
+        <label class="form-label">Low Stock Warning At</label>
+        <input type="number" class="form-input" id="inv-f-low" min="1" value="1"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Notes (optional)</label>
+      <textarea class="form-input" id="inv-f-notes" style="height:72px;resize:vertical" placeholder="Brand, expiration, weight..."></textarea>
+    </div>
+  </div>
+  <div class="modal-foot" style="justify-content:space-between">
+    <button class="delete-btn" id="inv-delete-btn" style="display:none" onclick="deleteInvItemUI()">Delete</button>
+    <div style="display:flex;gap:10px">
+      <button class="cancel-btn" onclick="closeInvForm()">Cancel</button>
+      <button class="save-btn" id="inv-save-btn" onclick="saveInvItem()" disabled>Save Item</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
 
-<!-- ═══════════════════════════════════════════════════════════════════
-     FIREBASE INIT  ─  Paste your config below, then save & re-upload
-     ═══════════════════════════════════════════════════════════════════ -->
 <script type="module">
 import { initializeApp }                              from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-import { getAuth, GoogleAuthProvider, signInWithPopup,
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInAnonymously,
          signOut as fbSignOut, onAuthStateChanged }   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import { getFirestore, collection, doc, setDoc, getDoc,
          deleteDoc, updateDoc, onSnapshot,
@@ -491,18 +603,34 @@ const auth     = getAuth(app);
 const db       = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
+// 🚀 NEW FIX: Force Google to ask which account to use so you can easily switch accounts!
+provider.setCustomParameters({
+  prompt: 'select_account'
+});
+
 // Enable offline persistence so the app works without internet
 enableIndexedDbPersistence(db).catch(() => {});
 
 let unsubscribeTasks = null;
 let unsubscribeDiary = null;
+let unsubscribeInventory = null;
 let unsubscribeSettings = null;
 
 // Expose helpers to global scope for the main script below
 window._fbSignIn = () => signInWithPopup(auth, provider);
+window._fbSignInAnonymously = () => signInAnonymously(auth);
 window._fbSignOut = () => fbSignOut(auth);
 
 window._listenTasks = (uid, onChange) => {
+  if (uid === 'local_guest') {
+    const load = () => {
+      const data = JSON.parse(localStorage.getItem('flowdo_local_tasks') || '[]');
+      onChange(data, null);
+    };
+    load();
+    window._triggerLocalTasksUpdate = load;
+    return;
+  }
   if (unsubscribeTasks) unsubscribeTasks();
   const col = collection(db, 'users', uid, 'tasks');
   unsubscribeTasks = onSnapshot(col,
@@ -516,6 +644,15 @@ window._listenTasks = (uid, onChange) => {
 };
 
 window._listenDiary = (uid, onChange) => {
+  if (uid === 'local_guest') {
+    const load = () => {
+      const data = JSON.parse(localStorage.getItem('flowdo_local_diary') || '[]');
+      onChange(data, null);
+    };
+    load();
+    window._triggerLocalDiaryUpdate = load;
+    return;
+  }
   if (unsubscribeDiary) unsubscribeDiary();
   const col = collection(db, 'users', uid, 'diary');
   unsubscribeDiary = onSnapshot(col,
@@ -528,7 +665,38 @@ window._listenDiary = (uid, onChange) => {
   );
 };
 
+window._listenInventory = (uid, onChange) => {
+  if (uid === 'local_guest') {
+    const load = () => {
+      const data = JSON.parse(localStorage.getItem('flowdo_local_inventory') || '[]');
+      onChange(data, null);
+    };
+    load();
+    window._triggerLocalInventoryUpdate = load;
+    return;
+  }
+  if (unsubscribeInventory) unsubscribeInventory();
+  const col = collection(db, 'users', uid, 'inventory');
+  unsubscribeInventory = onSnapshot(col,
+    snap => {
+      const docs = [];
+      snap.forEach(d => docs.push(d.data()));
+      onChange(docs, null);
+    },
+    err => onChange(null, err)
+  );
+};
+
 window._listenNotifSettings = (uid, onChange) => {
+  if (uid === 'local_guest') {
+    const load = () => {
+      const data = JSON.parse(localStorage.getItem('flowdo_local_notif_settings') || '{}');
+      onChange(data, null);
+    };
+    load();
+    window._triggerLocalSettingsUpdate = load;
+    return;
+  }
   if (unsubscribeSettings) unsubscribeSettings();
   const ref = doc(db, 'users', uid, 'settings', 'notifications');
   unsubscribeSettings = onSnapshot(ref,
@@ -540,10 +708,15 @@ window._listenNotifSettings = (uid, onChange) => {
 window._stopListening = () => {
   if (unsubscribeTasks) { unsubscribeTasks(); unsubscribeTasks = null; }
   if (unsubscribeDiary) { unsubscribeDiary(); unsubscribeDiary = null; }
+  if (unsubscribeInventory) { unsubscribeInventory(); unsubscribeInventory = null; }
   if (unsubscribeSettings) { unsubscribeSettings(); unsubscribeSettings = null; }
 };
 
 window._getTask = async (uid, id) => {
+  if (uid === 'local_guest') {
+    const tasks = JSON.parse(localStorage.getItem('flowdo_local_tasks') || '[]');
+    return tasks.find(t => t.id === id) || null;
+  }
   try {
     const snap = await getDoc(doc(db, 'users', uid, 'tasks', id));
     return snap.exists() ? snap.data() : null;
@@ -553,32 +726,137 @@ window._getTask = async (uid, id) => {
 };
 
 window._saveTask = async (uid, task) => {
+  if (uid === 'local_guest') {
+    const tasks = JSON.parse(localStorage.getItem('flowdo_local_tasks') || '[]');
+    const idx = tasks.findIndex(t => t.id === task.id);
+    if (idx > -1) tasks[idx] = task;
+    else tasks.push(task);
+    localStorage.setItem('flowdo_local_tasks', JSON.stringify(tasks));
+    if (window._triggerLocalTasksUpdate) window._triggerLocalTasksUpdate();
+    return;
+  }
   await setDoc(doc(db, 'users', uid, 'tasks', task.id), task);
 };
+
 window._saveDiaryEntry = async (uid, entry) => {
+  if (uid === 'local_guest') {
+    const diary = JSON.parse(localStorage.getItem('flowdo_local_diary') || '[]');
+    const idx = diary.findIndex(d => d.id === entry.id);
+    if (idx > -1) diary[idx] = entry;
+    else diary.push(entry);
+    localStorage.setItem('flowdo_local_diary', JSON.stringify(diary));
+    if (window._triggerLocalDiaryUpdate) window._triggerLocalDiaryUpdate();
+    return;
+  }
   await setDoc(doc(db, 'users', uid, 'diary', entry.id), entry);
 };
+
+window._saveInventoryItem = async (uid, item) => {
+  if (uid === 'local_guest') {
+    const inv = JSON.parse(localStorage.getItem('flowdo_local_inventory') || '[]');
+    const idx = inv.findIndex(i => i.id === item.id);
+    if (idx > -1) inv[idx] = item;
+    else inv.push(item);
+    localStorage.setItem('flowdo_local_inventory', JSON.stringify(inv));
+    if (window._triggerLocalInventoryUpdate) window._triggerLocalInventoryUpdate();
+    return;
+  }
+  await setDoc(doc(db, 'users', uid, 'inventory', item.id), item);
+};
+
 window._patchTask = async (uid, id, patch) => {
+  if (uid === 'local_guest') {
+    const tasks = JSON.parse(localStorage.getItem('flowdo_local_tasks') || '[]');
+    const idx = tasks.findIndex(t => t.id === id);
+    if (idx > -1) {
+      tasks[idx] = { ...tasks[idx], ...patch };
+      localStorage.setItem('flowdo_local_tasks', JSON.stringify(tasks));
+      if (window._triggerLocalTasksUpdate) window._triggerLocalTasksUpdate();
+    }
+    return;
+  }
   await updateDoc(doc(db, 'users', uid, 'tasks', id), patch);
 };
+
+window._patchInventoryItem = async (uid, id, patch) => {
+  if (uid === 'local_guest') {
+    const inv = JSON.parse(localStorage.getItem('flowdo_local_inventory') || '[]');
+    const idx = inv.findIndex(i => i.id === id);
+    if (idx > -1) {
+      inv[idx] = { ...inv[idx], ...patch };
+      localStorage.setItem('flowdo_local_inventory', JSON.stringify(inv));
+      if (window._triggerLocalInventoryUpdate) window._triggerLocalInventoryUpdate();
+    }
+    return;
+  }
+  await updateDoc(doc(db, 'users', uid, 'inventory', id), patch);
+};
+
 window._saveNotifHour = async (uid, hour) => {
+  if (uid === 'local_guest') {
+    const settings = JSON.parse(localStorage.getItem('flowdo_local_notif_settings') || '{}');
+    settings.hour = hour;
+    localStorage.setItem('flowdo_local_notif_settings', JSON.stringify(settings));
+    if (window._triggerLocalSettingsUpdate) window._triggerLocalSettingsUpdate();
+    return;
+  }
   await setDoc(doc(db, 'users', uid, 'settings', 'notifications'), { hour }, { merge: true });
 };
 
 window._deleteTask = async (uid, id) => {
+  if (uid === 'local_guest') {
+    let tasks = JSON.parse(localStorage.getItem('flowdo_local_tasks') || '[]');
+    tasks = tasks.filter(t => t.id !== id);
+    localStorage.setItem('flowdo_local_tasks', JSON.stringify(tasks));
+    if (window._triggerLocalTasksUpdate) window._triggerLocalTasksUpdate();
+    return;
+  }
   await deleteDoc(doc(db, 'users', uid, 'tasks', id));
 };
+
 window._deleteDiaryEntry = async (uid, id) => {
+  if (uid === 'local_guest') {
+    let diary = JSON.parse(localStorage.getItem('flowdo_local_diary') || '[]');
+    diary = diary.filter(d => d.id !== id);
+    localStorage.setItem('flowdo_local_diary', JSON.stringify(diary));
+    if (window._triggerLocalDiaryUpdate) window._triggerLocalDiaryUpdate();
+    return;
+  }
   await deleteDoc(doc(db, 'users', uid, 'diary', id));
 };
 
+window._deleteInventoryItem = async (uid, id) => {
+  if (uid === 'local_guest') {
+    let inv = JSON.parse(localStorage.getItem('flowdo_local_inventory') || '[]');
+    inv = inv.filter(i => i.id !== id);
+    localStorage.setItem('flowdo_local_inventory', JSON.stringify(inv));
+    if (window._triggerLocalInventoryUpdate) window._triggerLocalInventoryUpdate();
+    return;
+  }
+  await deleteDoc(doc(db, 'users', uid, 'inventory', id));
+};
+
 onAuthStateChanged(auth, user => {
-  if (window.onAuthStateChange) window.onAuthStateChange(user);
+  if (user) {
+    if (window.onAuthStateChange) window.onAuthStateChange(user);
+  } else {
+    if (localStorage.getItem('flowdo_is_local_guest') === 'true') {
+      const mockUser = {
+        uid: 'local_guest',
+        isAnonymous: true,
+        displayName: 'Guest User',
+        email: 'offline-session@flowdo.local',
+        photoURL: null
+      };
+      if (window.onAuthStateChange) window.onAuthStateChange(mockUser);
+    } else {
+      if (window.onAuthStateChange) window.onAuthStateChange(null);
+    }
+  }
 });
 </script>
 
 <script>
-// ─── AUTH STATE ───────────────────────────────────────────────────────────────
 let currentUser = null;
 
 window.onAuthStateChange = function(user) {
@@ -586,30 +864,51 @@ window.onAuthStateChange = function(user) {
   if (user) {
     currentUser = user;
     localStorage.setItem('flowdo_was_logged_in', 'true');
+    if (user.uid === 'local_guest') {
+      localStorage.setItem('flowdo_is_local_guest', 'true');
+    } else {
+      localStorage.removeItem('flowdo_is_local_guest');
+    }
     document.getElementById('auth-screen').style.display = 'none';
     document.getElementById('app').style.display = '';
     renderUserAvatar(user);
-    setSyncStatus('syncing');
+    setSyncStatus(user.uid === 'local_guest' ? 'synced' : 'syncing');
     let initialCheckDone = false;
+    
     window._listenTasks(user.uid, (docs, err) => {
       if (err) { setSyncStatus('error'); return; }
       tasks = docs || [];
-      localStorage.setItem('flowdo_cached_tasks', JSON.stringify(tasks));
+      if (user.uid !== 'local_guest') {
+        localStorage.setItem('flowdo_cached_tasks', JSON.stringify(tasks));
+      }
       setSyncStatus('synced');
       rerender();
-      // Fire on the first successful load after a full page open
       if (!initialCheckDone) {
         initialCheckDone = true;
         setTimeout(runRescheduleCheck, 600);
       }
     });
+
     window._listenDiary(user.uid, (docs, err) => {
       if (err) { setSyncStatus('error'); return; }
       diaryEntries = docs || [];
-      localStorage.setItem('flowdo_cached_diary', JSON.stringify(diaryEntries));
+      if (user.uid !== 'local_guest') {
+        localStorage.setItem('flowdo_cached_diary', JSON.stringify(diaryEntries));
+      }
       setSyncStatus('synced');
       rerender();
     });
+
+    window._listenInventory(user.uid, (docs, err) => {
+      if (err) { setSyncStatus('error'); return; }
+      inventoryItems = docs || [];
+      if (user.uid !== 'local_guest') {
+        localStorage.setItem('flowdo_cached_inventory', JSON.stringify(inventoryItems));
+      }
+      setSyncStatus('synced');
+      rerender();
+    });
+
     window._listenNotifSettings(user.uid, (settings, err) => {
       if (err) return;
       if (settings && settings.hour !== undefined) {
@@ -621,15 +920,15 @@ window.onAuthStateChange = function(user) {
         window._saveNotifHour(user.uid, notifHour()).catch(() => {});
       }
     });
-    // Register service worker for offline support and notification delivery
+
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').catch(() => {});
     }
-    // Handle any notification action URL params (openday / markdone)
     handleNotifUrlParams();
   } else {
     currentUser = null;
     localStorage.removeItem('flowdo_was_logged_in');
+    localStorage.removeItem('flowdo_is_local_guest');
     window._stopListening();
     document.getElementById('auth-screen').style.display = 'flex';
     document.getElementById('app').style.display = 'none';
@@ -643,8 +942,8 @@ function renderUserAvatar(user) {
   } else {
     wrap.innerHTML = `<div class="user-avatar-fallback">👤</div>`;
   }
-  document.getElementById('menu-name').textContent = user.displayName || 'Signed in';
-  document.getElementById('menu-email').textContent = user.email || '';
+  document.getElementById('menu-name').textContent = user.isAnonymous ? 'Guest User' : (user.displayName || 'Signed in');
+  document.getElementById('menu-email').textContent = user.isAnonymous ? 'Offline Session' : (user.email || '');
 }
 
 function setSyncStatus(status) {
@@ -653,18 +952,61 @@ function setSyncStatus(status) {
   dot.className = '';
   if (status === 'syncing') { dot.classList.add('syncing'); lbl.textContent = 'Syncing…'; }
   else if (status === 'error') { dot.id = 'sync-dot'; dot.style.background = '#dc2626'; lbl.textContent = 'Offline'; }
-  else { lbl.textContent = 'Synced'; }
+  else { lbl.textContent = currentUser && currentUser.uid === 'local_guest' ? 'Local Sandbox' : 'Synced'; }
 }
 
-function signIn()  { window._fbSignIn().catch(e => alert('Sign-in failed: ' + e.message)); }
+function signIn()  { window._fbSignIn().catch(e => showToast('🔑 Sign-in failed: ' + e.message)); }
+
+function signInAnonymouslyGuest() {
+  document.getElementById('loading-screen').style.display = 'flex';
+  
+  const proceedAsLocalGuest = () => {
+    const mockUser = {
+      uid: 'local_guest',
+      isAnonymous: true,
+      displayName: 'Guest User',
+      email: 'offline-session@flowdo.local',
+      photoURL: null
+    };
+    if (window.onAuthStateChange) {
+      window.onAuthStateChange(mockUser);
+    }
+    showToast('👤 Session started as Guest!');
+  };
+
+  if (window._fbSignInAnonymously) {
+    window._fbSignInAnonymously()
+      .catch(e => {
+        console.warn('Firebase Anonymous Auth failed or blocked. Using Local Fallback Session:', e);
+        proceedAsLocalGuest();
+      });
+  } else {
+    console.warn('Firebase Module not loaded yet. Loading Local Sandbox Guest...');
+    proceedAsLocalGuest();
+  }
+}
+
+// 🚀 NEW FIX: Async sign out manually forces a UI reset to fix the guest account hanging!
 function signOut() {
-  if (!confirm('Sign out of FlowDo?')) return;
-  localStorage.removeItem('flowdo_was_logged_in');
-  localStorage.removeItem('flowdo_cached_tasks');
-  localStorage.removeItem('flowdo_cached_diary');
-  closeUserMenu();
-  closeNotifSettings();
-  window._fbSignOut();
+  showConfirm('🚪 Sign Out', 'Are you sure you want to sign out of FlowDo?', async () => {
+    // 🚀 BONUS FIX: Dynamically clear all FlowDo-related local storage on sign out
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith('flowdo_')) {
+        localStorage.removeItem(key);
+      }
+    });
+    closeUserMenu();
+    closeNotifSettings();
+    
+    // Await the Firebase sign out so it finishes first
+    try { await window._fbSignOut(); } catch (e) { console.warn(e); }
+    
+    // Explicitly reset the UI state. This fixes the bug where logging out of the 
+    // local guest account required a page refresh because Firebase didn't fire an auth state change.
+    if (window.onAuthStateChange) {
+        window.onAuthStateChange(null);
+    }
+  }, false);
 }
 
 function toggleUserMenu() {
@@ -677,9 +1019,11 @@ function closeUserMenu() {
   document.getElementById('user-menu-backdrop').style.display = 'none';
 }
 
-// ─── TASK PERSISTENCE (Firebase instead of localStorage) ──────────────────────
-let tasks = JSON.parse(localStorage.getItem('flowdo_cached_tasks') || '[]');
-let diaryEntries = JSON.parse(localStorage.getItem('flowdo_cached_diary') || '[]');
+// ─── TASK PERSISTENCE (Handles dynamic switching between guest sandbox and sync tables) ───
+const isLocalGuestSession = localStorage.getItem('flowdo_is_local_guest') === 'true';
+let tasks = JSON.parse(localStorage.getItem(isLocalGuestSession ? 'flowdo_local_tasks' : 'flowdo_cached_tasks') || '[]');
+let diaryEntries = JSON.parse(localStorage.getItem(isLocalGuestSession ? 'flowdo_local_diary' : 'flowdo_cached_diary') || '[]');
+let inventoryItems = JSON.parse(localStorage.getItem(isLocalGuestSession ? 'flowdo_local_inventory' : 'flowdo_cached_inventory') || '[]');
 const pendingToggleIds = new Set();
 
 async function fbSave(task) {
@@ -710,11 +1054,25 @@ async function fbPatch(id, patch) {
   try { await window._patchTask(currentUser.uid, id, patch); } catch(e) { setSyncStatus('error'); }
 }
 
-// ─── DATE UTILS ───────────────────────────────────────────────────────────────
+async function fbSaveInventory(item) {
+  if (!currentUser) return;
+  setSyncStatus('syncing');
+  try { await window._saveInventoryItem(currentUser.uid, item); } catch(e) { setSyncStatus('error'); }
+}
+async function fbPatchInventory(id, patch) {
+  if (!currentUser) return;
+  setSyncStatus('syncing');
+  try { await window._patchInventoryItem(currentUser.uid, id, patch); } catch(e) { setSyncStatus('error'); }
+}
+async function fbDeleteInventory(id) {
+  if (!currentUser) return;
+  setSyncStatus('syncing');
+  try { await window._deleteInventoryItem(currentUser.uid, id); } catch(e) { setSyncStatus('error'); }
+}
+
+// ─── DATE UTILS ───
 function todayDS() {
   const d = new Date();
-  // Custom day boundary: if current hour is before the user's chosen hour,
-  // treat it as still being "yesterday" (supports nocturnal schedules)
   const boundary = notifHour ? notifHour() : 8;
   if (d.getHours() < boundary) d.setDate(d.getDate() - 1);
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -743,7 +1101,7 @@ function diaryEntriesForDate(ds) {
   });
 }
 
-// ─── PRIORITIES ───────────────────────────────────────────────────────────────
+// ─── PRIORITIES ───
 const PRIO = {
   critical: { label:'Critical', color:'#b91c1c', bg:'#fee2e2', dot:'#ef4444' },
   high:     { label:'High',     color:'#c2410c', bg:'#ffedd5', dot:'#f97316' },
@@ -761,7 +1119,7 @@ function cellColor(ds) {
   return { bg:'#fee2e2', bar:'#dc2626', text:'#991b1b' };
 }
 
-// ─── STATE ────────────────────────────────────────────────────────────────────
+// ─── STATE VARIABLES ───
 let currentView   = 'calendar';
 let currentSelDay = null;
 let calDate       = new Date();
@@ -774,26 +1132,31 @@ let formMode      = 'task';
 let diaryEntryKind = 'food';
 let backlogView   = 'tasks';
 
-// ─── VIEW SWITCHING ───────────────────────────────────────────────────────────
+// ─── VIEW SWITCHING ───
 function switchView(v) {
   currentView = v;
   document.getElementById('view-calendar').style.display = v === 'calendar' ? '' : 'none';
   document.getElementById('view-diary').style.display    = v === 'diary'    ? '' : 'none';
   document.getElementById('view-backlog').style.display  = v === 'backlog'  ? '' : 'none';
+  document.getElementById('view-inventory').style.display = v === 'inventory' ? '' : 'none';
+
   document.getElementById('tab-cal').className = 'tab-btn' + (v==='calendar'?' active':'');
   document.getElementById('tab-diary').className = 'tab-btn' + (v==='diary'?' active':'');
   document.getElementById('tab-bl').className  = 'tab-btn' + (v==='backlog'?' active':'');
+  document.getElementById('tab-inv').className  = 'tab-btn' + (v==='inventory'?' active':'');
+
   if (v === 'backlog') renderBacklog();
   else if (v === 'diary') renderDiaryCalendar();
+  else if (v === 'inventory') renderInventory();
   else renderCalendar();
 }
 
 function fabClick() {
   if (currentView === 'diary') openDiaryForm(null, currentSelDay || todayDS(), 'food');
+  else if (currentView === 'inventory') openInvForm();
   else openForm(null, currentSelDay || todayDS());
 }
 
-// ─── CALENDAR RENDER ──────────────────────────────────────────────────────────
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const DOW    = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
@@ -852,7 +1215,6 @@ function renderCalendar() {
   }
   updateBacklogBadge();
 }
-
 
 function diaryCellColor(ds) {
   const count = diaryEntriesForDate(ds).filter(x => x.entryKind === 'symptom').length;
@@ -913,10 +1275,8 @@ function prevMonth() { calDate = new Date(calDate.getFullYear(), calDate.getMont
 function nextMonth() { calDate = new Date(calDate.getFullYear(), calDate.getMonth()+1, 1); renderCalendar(); }
 function goToday()   { calDate = new Date(); renderCalendar(); openDay(todayDS()); }
 
-// ─── DAY PANEL ────────────────────────────────────────────────────────────────
-// ─── UNIFIED BACK-NAVIGATION (Android swipe / hardware back button) ──────────
-// Tracks which modal/panel is currently open so popstate knows what to close
-let _modalStack = []; // stack of close-functions
+// ─── SWIPE MODAL HANDLERS (Resolves browser back/swipe gestures seamlessly) ───
+let _modalStack = [];
 let _ignoreNextPop = false;
 
 function _pushModal(closeFn) {
@@ -935,13 +1295,44 @@ function _popModal() {
 
 window.addEventListener('popstate', () => {
   if (_ignoreNextPop) { _ignoreNextPop = false; return; }
-  // Android back swipe / hardware back hit — close whatever is on top
   const closeFn = _modalStack.pop();
   if (closeFn) closeFn();
 });
 
 let panelHistoryPushed = false;
 
+let confirmCallback = null;
+function showConfirm(title, message, onYes, danger = true) {
+  document.getElementById('confirm-title').textContent = title;
+  document.getElementById('confirm-message').textContent = message;
+  const yesBtn = document.getElementById('confirm-yes-btn');
+  yesBtn.style.background = danger ? '#dc2626' : 'linear-gradient(135deg,#1e3a5f,#0f2440)';
+  yesBtn.textContent = danger ? 'Confirm' : 'Proceed';
+  confirmCallback = (approved) => {
+    if (approved) onYes();
+  };
+  document.getElementById('confirm-backdrop').style.display = '';
+  document.getElementById('confirm-modal').style.display = '';
+  _pushModal(_closeConfirmUI);
+}
+function _closeConfirmUI() {
+  document.getElementById('confirm-backdrop').style.display = 'none';
+  document.getElementById('confirm-modal').style.display = 'none';
+}
+function closeConfirmModal(approved) {
+  _closeConfirmUI();
+  if (_modalStack.length && _modalStack[_modalStack.length-1] === _closeConfirmUI) {
+    _modalStack.pop();
+    if (history.state && history.state.flowdoModal) {
+      _ignoreNextPop = true;
+      history.back();
+    }
+  }
+  if (confirmCallback) {
+    confirmCallback(approved);
+    confirmCallback = null;
+  }
+}
 
 function openDiaryDay(ds) {
   currentSelDay = ds;
@@ -1067,7 +1458,7 @@ function renderPanelTasks(ds) {
   }
 }
 
-// ─── BACKLOG ──────────────────────────────────────────────────────────────────
+// ─── BACKLOG ───
 function renderBacklog() {
   if (backlogView === 'diary') return renderDiaryFavorites();
   const bl = tasks.filter(t => t.type === 'general').sort(taskPanelSort);
@@ -1106,7 +1497,6 @@ function renderDiaryFavorites() {
   updateBacklogBadge();
 }
 
-// ─── TASK CARD HTML ───────────────────────────────────────────────────────────
 function taskCardHTML(t, {showBacklog=false, showMove=false}) {
   const p = PRIO[t.priority] || PRIO.medium;
   const checkBg = t.completed ? p.dot : 'transparent';
@@ -1128,38 +1518,178 @@ function taskCardHTML(t, {showBacklog=false, showMove=false}) {
   </div>`;
 }
 
+// ─── INVENTORY (PANTRY) ───
+function renderInventory() {
+  // Low stock items (always first)
+  const lowStock = inventoryItems
+    .filter(i => i.count > 0 && i.count <= i.low)
+    .sort((a, b) => {
+      if (a.count !== b.count) return a.count - b.count;
+      return a.title.localeCompare(b.title);
+    });
+
+  // Everything else in stock
+  const normalStock = inventoryItems
+    .filter(i => i.count > i.low)
+    .sort((a, b) => {
+      if (a.count !== b.count) return a.count - b.count;
+      return a.title.localeCompare(b.title);
+    });
+
+  // Keep depleted items exactly in their current order
+  const depleted = inventoryItems.filter(i => i.count === 0);
+
+  const active = [...lowStock, ...normalStock];
+
+  let activeHtml = active.length ? active.map(i => invCardHTML(i)).join('') : `<div class="empty-state"><div class="empty-icon">🍱</div><div class="empty-title">Pantry is empty</div><div class="empty-sub">Add pre-cooked meals or ingredients to keep track.</div></div>`;
+  let depletedHtml = depleted.length ? `<div class="section-divider" style="margin-top:16px;">🛒 Restock Needed</div>` + depleted.map(i => invCardHTML(i)).join('') : '';
+
+  document.getElementById('view-inventory').innerHTML = `<div class="inv-box">
+    <div class="inv-hdr"><div class="inv-title">📦 Pantry</div><div class="inv-sub">Dynamically track fluctuating food quantities and pre-cooked containers.</div></div>
+    <div class="inv-body">
+      ${activeHtml}
+      ${depletedHtml}
+    </div>
+  </div>`;
+}
+
+function invCardHTML(i) {
+  const isDepleted = i.count === 0;
+  const isLow = !isDepleted && i.count <= (i.lowStockThreshold || 1);
+  const cls = isDepleted ? 'inv-card depleted' : (isLow ? 'inv-card low-stock' : 'inv-card');
+  const badge = isLow ? `<span class="inv-badge">Low Stock</span>` : '';
+  const notesHTML = i.notes ? `<div class="t-notes">${escHtml(i.notes)}</div>` : '';
+
+  return `<div class="inv-card ${cls}" id="inv-${i.id}">
+    <div class="inv-info" onclick="editInvItem('${i.id}')">
+      <div class="inv-name">${escHtml(i.title)}</div>
+      ${isLow ? `<div class="inv-meta">${badge}</div>` : ''}
+      ${notesHTML}
+    </div>
+    <div class="stepper" onclick="event.stopPropagation()">
+      <button class="step-btn" onclick="updateInvCount('${i.id}', -1)" ${isDepleted ? 'disabled' : ''}>-</button>
+      <div class="step-val">${i.count}</div>
+      <button class="step-btn" onclick="updateInvCount('${i.id}', 1)">+</button>
+    </div>
+  </div>`;
+}
+
+async function updateInvCount(id, delta) {
+  const item = inventoryItems.find(i => i.id === id);
+  if (!item) return;
+  const newCount = Math.max(0, item.count + delta);
+  if(newCount === item.count) return; // Ignore decrement past 0
+  
+  if (delta > 0 && item.count === 0) {
+      // Re-activating a depleted item!
+      triggerDopamineHit(id);
+  }
+  
+  await fbPatchInventory(id, { count: newCount, updatedAt: new Date().toISOString() });
+}
+
+function openInvForm(item = null) {
+  editInvId = item ? item.id : null;
+  
+  document.getElementById('inv-modal-title').textContent = item ? '✏️ Edit Item' : '📦 New Inventory Item';
+  document.getElementById('inv-save-btn').textContent = item ? 'Save Changes' : 'Add Item';
+  
+  document.getElementById('inv-f-title').value = item ? item.title : '';
+  document.getElementById('inv-f-count').value = item ? item.count : '1';
+  document.getElementById('inv-f-low').value = item ? (item.lowStockThreshold || 1) : '1';
+  document.getElementById('inv-f-notes').value = item ? (item.notes || '') : '';
+  
+  document.getElementById('inv-delete-btn').style.display = item ? '' : 'none';
+  updateInvSaveBtn();
+  
+  document.getElementById('inv-form-backdrop').style.display = '';
+  document.getElementById('inv-modal').style.display = '';
+  _pushModal(closeInvForm);
+  if (!item) document.getElementById('inv-f-title').focus();
+}
+
+function closeInvForm() {
+  document.getElementById('inv-form-backdrop').style.display = 'none';
+  document.getElementById('inv-modal').style.display = 'none';
+  editInvId = null;
+  if (_modalStack.length && _modalStack[_modalStack.length-1] === closeInvForm) {
+      _modalStack.pop();
+  }
+}
+
+function updateInvSaveBtn() {
+  const title = document.getElementById('inv-f-title').value.trim();
+  document.getElementById('inv-save-btn').disabled = !title;
+}
+
+async function saveInvItem() {
+  const title = document.getElementById('inv-f-title').value.trim();
+  if (!title) return;
+  
+  const count = parseInt(document.getElementById('inv-f-count').value, 10) || 0;
+  const lowStockThreshold = parseInt(document.getElementById('inv-f-low').value, 10) || 1;
+  const notes = document.getElementById('inv-f-notes').value.trim();
+  
+  const payload = {
+      title,
+      count: Math.max(0, count),
+      lowStockThreshold: Math.max(0, lowStockThreshold),
+      notes,
+      updatedAt: new Date().toISOString()
+  };
+
+  if (editInvId) {
+      await fbPatchInventory(editInvId, payload);
+  } else {
+      payload.id = genId();
+      payload.createdAt = payload.updatedAt;
+      await fbSaveInventory(payload);
+  }
+  
+  closeInvForm();
+}
+
+function editInvItem(id) {
+  const i = inventoryItems.find(x => x.id === id);
+  if (!i) return;
+  openInvForm(i);
+}
+
+function deleteInvItemUI() {
+  if (!editInvId) return;
+  showConfirm('🗑️ Delete Item', 'Are you sure you want to delete this inventory item? This cannot be undone.', async () => {
+    const id = editInvId;
+    closeInvForm();
+    await fbDeleteInventory(id);
+    showToast('🗑️ Item deleted successfully');
+  }, true);
+}
+
 function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-// ─── DOPAMINE CONFETTI ────────────────────────────────────────────────────────
+// ─── DOPAMINE CONFETTI BURSTS ───
 function triggerDopamineHit(id) {
-  // Find the specific task card and its checkbox
   const card = document.getElementById(`card-${id}`);
   if (!card) return;
   const btn = card.querySelector('.t-check');
   if (!btn) return;
 
-  // Calculate exactly where the checkbox is on the screen
   const rect = btn.getBoundingClientRect();
   const x = (rect.left + rect.width / 2) / window.innerWidth;
   const y = (rect.top + rect.height / 2) / window.innerHeight;
 
-  // Fire the confetti!
   confetti({
-    particleCount: 55,          // A satisfying but quick burst
-    spread: 70,                 // How wide the burst goes
-    origin: { x: x, y: y },     // Bursts exactly from the checkbox
-    colors: ['#1e3a5f', '#f59e0b', '#16a34a'], // App theme blue + Gold + Success Green
-    ticks: 150,                 // How long it lasts before fading
-    disableForReducedMotion: true, // Good for accessibility
-    
-    // THIS FIXES THE LAYER ISSUE:
-    // This forces the library's internal canvas element onto layer 99999,
-    // which puts it safely in front of your #day-panel and modals.
+    particleCount: 65,
+    spread: 360,
+    origin: { x: x, y: y },
+    colors: ['#1e3a5f', '#f59e0b', '#16a34a'],
+    ticks: 150,
+    disableForReducedMotion: true,
     zIndex: 99999 
   });
 }
 
-// ─── TASK ACTIONS ─────────────────────────────────────────────────────────────
+// ─── TASK ACTIONS ───
 async function toggleTask(id) {
   if (pendingToggleIds.has(id)) return;
   pendingToggleIds.add(id);
@@ -1167,7 +1697,6 @@ async function toggleTask(id) {
     const t = tasks.find(x => x.id === id);
     if (!t) return;
     if (!t.completed) {
-      // 🎉 BOOM! Hit them with the dopamine!
       triggerDopamineHit(id);
       
       t.completed = true; t.completedAt = t.date || todayDS();
@@ -1202,9 +1731,11 @@ async function toggleTask(id) {
   }
 }
 
-async function deleteTask(id) {
-  if (!confirm('Delete this task?')) return;
-  await fbDelete(id);
+function deleteTask(id) {
+  showConfirm('🗑️ Delete Task', 'Are you sure you want to delete this task? This cannot be undone.', async () => {
+    await fbDelete(id);
+    showToast('🗑️ Task deleted successfully');
+  }, true);
 }
 
 async function moveToBacklog(id) {
@@ -1225,6 +1756,7 @@ async function doAssignDate(id) {
   await fbSave(t);
 }
 
+// ─── EDIT & ROUTING ───
 function editTask(id) {
   const t = tasks.find(x => x.id === id);
   if (!t) return;
@@ -1244,6 +1776,8 @@ function rerender() {
   } else if (currentView === 'diary') {
     renderDiaryCalendar();
     if (currentSelDay) renderDiaryPanel(currentSelDay);
+  } else if (currentView === 'inventory') {
+      renderInventory();
   } else {
     renderBacklog();
   }
@@ -1254,8 +1788,6 @@ function updateBacklogBadge() {
   const el = document.getElementById('bl-badge');
   if (el) { el.textContent = n; el.style.display = n > 0 ? '' : 'none'; }
 }
-
-// ─── TASK FORM ────────────────────────────────────────────────────────────────
 
 function applyFormModeLabels() {
   const isDiary = formMode === 'diary';
@@ -1316,13 +1848,16 @@ function openForm(task, defaultDate) {
   _pushModal(_closeFormUI);
   if (!task) document.getElementById('f-title').focus();
 }
-async function deleteEditingTask() {
+
+function deleteEditingTask() {
   if (!editTaskId) return;
-  if (!confirm('Delete this entry? This cannot be undone.')) return;
-  const id = editTaskId;
-  const mode = formMode;
-  closeForm();
-  if (mode === 'diary') await fbDeleteDiary(id); else await fbDelete(id);
+  showConfirm('🗑️ Delete Entry', 'Are you sure you want to delete this entry? This cannot be undone.', async () => {
+    const id = editTaskId;
+    const mode = formMode;
+    closeForm();
+    if (mode === 'diary') await fbDeleteDiary(id); else await fbDelete(id);
+    showToast('🗑️ Entry deleted successfully');
+  }, true);
 }
 
 function _closeFormUI() {
@@ -1381,42 +1916,76 @@ function updateSaveBtn() {
 }
 
 async function saveTask() {
-  const title = document.getElementById('f-title').value.trim();
-  if (!title) return;
-  const date = formType === 'general' ? null : document.getElementById('f-date').value;
-  const notes = document.getElementById('f-notes').value.trim();
-  const recDays = formType === 'recurring' ? (parseInt(document.getElementById('f-rec-days').value) || 7) : null;
-  const autoReschedule = formType !== 'general'; // always on for dated tasks
+  // 1. Immediately lock the button to prevent double-submits
+  const saveBtn = document.getElementById('save-btn');
+  saveBtn.disabled = true; 
+  saveBtn.textContent = 'Saving...';
 
-  if (formMode === 'diary') {
-    if (editTaskId) {
-      const entry = diaryEntries.find(x => x.id === editTaskId);
-      if (entry) {
-        entry.title=title; entry.type=formType; entry.date=date; entry.priority=formPriority; entry.recurringDays=recDays; entry.notes=notes; entry.entryKind=diaryEntryKind;
+  try {
+    const title = document.getElementById('f-title').value.trim();
+    
+    // FIX: Re-enable the button if returning early due to a missing title
+    if (!title) {
+      saveBtn.disabled = false;
+      saveBtn.textContent = editTaskId ? 'Save Changes' : 'Add Task';
+      return; 
+    }
+    
+    const date = formType === 'general' ? null : document.getElementById('f-date').value;
+    
+    // --- BONUS FIX START ---
+    // Prevent saving if "Specific day" (daily) is selected but no date is provided
+    if (formType === 'daily' && !date) {
+      saveBtn.disabled = false;
+      saveBtn.textContent = editTaskId ? 'Save Changes' : 'Add Task';
+      
+      // Optional: Since you have a showToast function in your code, you can alert the user
+      if (typeof showToast === 'function') {
+        showToast('Please select a date.');
+      }
+      return;
+    }
+    // --- BONUS FIX END ---
+
+    const notes = document.getElementById('f-notes').value.trim();
+    const recDays = formType === 'recurring' ? (parseInt(document.getElementById('f-rec-days').value) || 7) : null;
+    const autoReschedule = formType !== 'general';
+
+    if (formMode === 'diary') {
+      if (editTaskId) {
+        const entry = diaryEntries.find(x => x.id === editTaskId);
+        if (entry) {
+          entry.title=title; entry.type=formType; entry.date=date; entry.priority=formPriority; entry.recurringDays=recDays; entry.notes=notes; entry.entryKind=diaryEntryKind;
+          await fbSaveDiary(entry);
+        }
+      } else {
+        const entry = {id:genId(), title, type:formType, entryKind:diaryEntryKind, date, priority:formPriority, recurringDays:recDays, notes, createdAt:new Date().toISOString()};
         await fbSaveDiary(entry);
       }
-    } else {
-      const entry = {id:genId(), title, type:formType, entryKind:diaryEntryKind, date, priority:formPriority, recurringDays:recDays, notes, createdAt:new Date().toISOString()};
-      await fbSaveDiary(entry);
+      closeForm();
+      return;
     }
-    closeForm();
-    return;
-  }
 
-  if (editTaskId) {
-    const t = tasks.find(x => x.id === editTaskId);
-    if (t) {
-      t.title=title; t.type=formType; t.date=date; t.priority=formPriority; t.recurringDays=recDays; t.notes=notes; t.autoReschedule=autoReschedule;
+    if (editTaskId) {
+      const t = tasks.find(x => x.id === editTaskId);
+      if (t) {
+        t.title=title; t.type=formType; t.date=date; t.priority=formPriority; t.recurringDays=recDays; t.notes=notes; t.autoReschedule=autoReschedule;
+        await fbSave(t);
+      }
+    } else {
+      const t = {id:genId(), title, type:formType, date, priority:formPriority, recurringDays:recDays, notes, autoReschedule, completed:false, completedAt:null, createdAt:new Date().toISOString()};
       await fbSave(t);
     }
-  } else {
-    const t = {id:genId(), title, type:formType, date, priority:formPriority, recurringDays:recDays, notes, autoReschedule, completed:false, completedAt:null, createdAt:new Date().toISOString()};
-    await fbSave(t);
+    
+    closeForm();
+  } catch (err) {
+    console.error(err);
+    // Re-enable if there's an error so the user isn't stuck
+    saveBtn.disabled = false; 
+    saveBtn.textContent = editTaskId ? 'Save Changes' : 'Add Task';
   }
-  closeForm();
 }
 
-// ─── SEARCH ───────────────────────────────────────────────────────────────────
 function openSearch() {
   document.getElementById('search-panel').classList.add('open');
   runSearch(); 
@@ -1452,7 +2021,6 @@ function highlight(text, query) {
   return safe.replace(new RegExp(`(${pattern})`, 'gi'), m => `<mark>${m}</mark>`);
 }
 
-// Selects the suggestion and safely hides the dropdown
 function selectTaskTitle(val) {
   document.getElementById('f-title').value = val;
   document.getElementById('task-title-dropdown').style.display = 'none';
@@ -1471,7 +2039,9 @@ function renderTaskTitleSuggestions(query = '') {
   
   const currentId = editTaskId;
   const seen = new Set();
-  const suggestions = tasks
+  const dataPool = formMode === 'diary' ? diaryEntries.filter(e => e.entryKind === diaryEntryKind) : tasks;
+
+  const suggestions = dataPool
     .filter(t => t.id !== currentId && t.title && matchesAllTokens(t.title, tokens))
     .sort((a,b) => a.title.localeCompare(b.title, undefined, { sensitivity:'base' }))
     .map(t => t.title)
@@ -1496,7 +2066,6 @@ function renderTaskTitleSuggestions(query = '') {
   }
 }
 
-// Selects the search suggestion and automatically runs the search
 function selectSearchSuggestion(val) {
   const input = document.getElementById('search-input');
   input.value = val;
@@ -1505,7 +2074,6 @@ function selectSearchSuggestion(val) {
   input.focus();
 }
 
-// Renders the tokenized suggestions for the main search bar
 function renderSearchSuggestions(query = '') {
   const dropdown = document.getElementById('search-suggestions-dropdown');
   if (!dropdown) return;
@@ -1517,7 +2085,8 @@ function renderSearchSuggestions(query = '') {
   }
   
   const seen = new Set();
-  const suggestions = tasks
+  const allItems = [...tasks, ...diaryEntries];
+  const suggestions = allItems
     .filter(t => t.title && matchesAllTokens(t.title, tokens))
     .sort((a,b) => {
       if (a.completed !== b.completed) return a.completed ? 1 : -1;
@@ -1556,13 +2125,35 @@ function searchDateSort(a, b, newestFirst = false) {
 }
 
 function searchResultHTML(t, q) {
+  const isDiary = !!t.entryKind;
   const pr = PRIO[t.priority] || PRIO.medium;
-  let dateChip = t.type === 'general' ? `<span class="src-type-chip">📦 Backlog</span>` : t.date ? `<span class="src-date-chip">📅 ${fmtDate(t.date)}</span>` : '';
+  
+  let dateChip = '';
+  if (t.type === 'general') {
+    dateChip = isDiary ? `<span class="src-type-chip">⭐ Favorite</span>` : `<span class="src-type-chip">📦 Backlog</span>`;
+  } else if (t.date) {
+    dateChip = `<span class="src-date-chip">📅 ${fmtDate(t.date)}</span>`;
+  }
   if (t.type === 'recurring') dateChip += `<span class="src-type-chip">🔄 every ${t.recurringDays}d</span>`;
-  const clickAction = t.date ? `onSearchResultClick('${t.id}','${t.date}')` : `onSearchResultClickBacklog('${t.id}')`;
-  return `<div class="search-result-card" style="border-left-color:${t.completed?'#d1d5db':pr.dot}" onclick="${clickAction}">
-    <div class="${t.completed?'src-title done':'src-title'}">${highlight(t.title, q)}</div>
-    <div class="src-meta"><span class="p-badge" style="background:${pr.bg};color:${pr.color}">${pr.label}</span>${dateChip}${t.completed?'<span class="src-type-chip">✓ Done</span>':''}</div>
+  
+  let clickAction = '';
+  if (isDiary) {
+    clickAction = t.date ? `onDiarySearchResultClick('${t.id}','${t.date}')` : `onDiarySearchResultClickBacklog('${t.id}')`;
+  } else {
+    clickAction = t.date ? `onSearchResultClick('${t.id}','${t.date}')` : `onSearchResultClickBacklog('${t.id}')`;
+  }
+
+  let kindBadge = '';
+  if (isDiary) kindBadge = `<span class="src-type-chip">${t.entryKind === 'food' ? '🍽️ Food' : '🌡️ Symptom'}</span>`;
+  else if (t.completed) kindBadge = `<span class="src-type-chip">✓ Done</span>`;
+
+  const badgeText = isDiary ? `${t.entryKind === 'food' ? 'Amount' : 'Intensity'}: ${pr.label}` : pr.label;
+  const titleCls = (!isDiary && t.completed) ? 'src-title done' : 'src-title';
+  const borderCol = (!isDiary && t.completed) ? '#d1d5db' : pr.dot;
+
+  return `<div class="search-result-card" style="border-left-color:${borderCol}" onclick="${clickAction}">
+    <div class="${titleCls}">${highlight(t.title, q)}</div>
+    <div class="src-meta"><span class="p-badge" style="background:${pr.bg};color:${pr.color}">${badgeText}</span>${dateChip}${kindBadge}</div>
     ${t.notes ? `<div class="src-notes">${highlight(t.notes, q)}</div>` : ''}
   </div>`;
 }
@@ -1570,27 +2161,29 @@ function searchResultHTML(t, q) {
 function runSearch() {
   const q = document.getElementById('search-input').value.trim();
   const resultsEl = document.getElementById('search-results');
-  
   const tokens = q.toLowerCase().split(/\s+/).filter(Boolean);
   
   if (!tokens.length) { 
-    resultsEl.innerHTML = `<div class="search-empty"><div class="search-empty-icon">🔍</div><div class="search-empty-title">Search your tasks</div><div class="search-empty-sub">Type anything to find tasks by name or notes</div></div>`; 
+    resultsEl.innerHTML = `<div class="search-empty"><div class="search-empty-icon">🔍</div><div class="search-empty-title">Search your items</div><div class="search-empty-sub">Type anything to find tasks, foods, or symptoms</div></div>`; 
     return; 
   }
   
-  const matches = tasks.filter(t => matchesAllTokens(t.title, tokens) || matchesAllTokens(t.notes, tokens));
+  const allItems = [...tasks, ...diaryEntries];
+  const matches = allItems.filter(t => matchesAllTokens(t.title, tokens) || matchesAllTokens(t.notes, tokens));
   
   if (matches.length === 0) { 
     resultsEl.innerHTML = `<div class="search-empty"><div class="search-empty-icon">🤷</div><div class="search-empty-title">No results for "${escHtml(q)}"</div><div class="search-empty-sub">Try a different search term</div></div>`; 
     return; 
   }
   
-  const pending = matches.filter(t => !t.completed).sort((a,b) => searchDateSort(a, b, false));
-  const completed = matches.filter(t => t.completed).sort((a,b) => searchDateSort(a, b, true));
-  let html = `<div class="search-count">${matches.length} result${matches.length !== 1 ? 's' : ''}</div>`;
+  const pendingTasks = matches.filter(t => !t.entryKind && !t.completed).sort((a,b) => searchDateSort(a, b, false));
+  const completedTasks = matches.filter(t => !t.entryKind && t.completed).sort((a,b) => searchDateSort(a, b, true));
+  const diaryMatches = matches.filter(t => t.entryKind).sort((a,b) => searchDateSort(a, b, true));
   
-  if (pending.length) html += `<div class="section-divider">To do</div>` + pending.map(t => searchResultHTML(t, q)).join('');
-  if (completed.length) html += `<div class="section-divider">✓ Completed</div>` + completed.map(t => searchResultHTML(t, q)).join('');
+  let html = `<div class="search-count">${matches.length} result${matches.length !== 1 ? 's' : ''}</div>`;
+  if (pendingTasks.length) html += `<div class="section-divider">To do</div>` + pendingTasks.map(t => searchResultHTML(t, q)).join('');
+  if (diaryMatches.length) html += `<div class="section-divider">Diary Entries</div>` + diaryMatches.map(t => searchResultHTML(t, q)).join('');
+  if (completedTasks.length) html += `<div class="section-divider">✓ Completed Tasks</div>` + completedTasks.map(t => searchResultHTML(t, q)).join('');
   
   resultsEl.innerHTML = html;
 }
@@ -1611,7 +2204,24 @@ function onSearchResultClickBacklog(id) {
   setTimeout(() => editTask(id), 80);
 }
 
-// ─── TOAST ────────────────────────────────────────────────────────────────────
+function onDiarySearchResultClick(id, date) {
+  closeSearch();
+  diaryDate = new Date(date + 'T12:00:00');
+  switchView('diary');
+  setTimeout(() => {
+    openDiaryDay(date);
+    setTimeout(() => editDiaryEntry(id), 80);
+  }, 50);
+}
+
+function onDiarySearchResultClickBacklog(id) {
+  closeSearch();
+  backlogView = 'diary';
+  switchView('backlog');
+  setTimeout(() => editDiaryEntry(id), 80);
+}
+
+// ─── TOAST NOTIFICATIONS ───
 let toastTimer = null;
 function showToast(msg) {
   const el = document.getElementById('toast');
@@ -1621,10 +2231,12 @@ function showToast(msg) {
   toastTimer = setTimeout(() => el.classList.remove('show'), 3500);
 }
 
-// ─── AUTO-RESCHEDULE ENGINE ───────────────────────────────────────────────────
+// ─── AUTO-RESCHEDULE ENGINE ───
 async function runRescheduleCheck() {
   if (!currentUser) return;
   const td = todayDS();
+  
+  // Find all currently overdue tasks
   const overdue = tasks.filter(t =>
     t.autoReschedule && !t.completed && t.date && t.date < td && !pendingToggleIds.has(t.id)
   );
@@ -1632,27 +2244,34 @@ async function runRescheduleCheck() {
   if (overdue.length) {
     let shiftedCount = 0;
     for (const t of overdue) {
-      // Re-verify with the database to ensure we aren't using stale background-tab data
       try {
         const latest = await window._getTask(currentUser.uid, t.id);
         
-        // Only shift if it is STILL incomplete in the absolute latest database state
-        if (latest && !latest.completed && latest.date && latest.date < td) {
-          t.date = td; 
-          await fbPatch(t.id, { date: td });
+        // 1. Re-fetch the local state to ensure you didn't manually modify 
+        //    the task while the app was waiting for the network.
+        const currentLocal = tasks.find(x => x.id === t.id);
+        
+        // If you manually completed it or pushed it to the future during the await, skip it!
+        if (!currentLocal || currentLocal.completed || currentLocal.date >= td) {
+          continue; 
+        }
+
+        // 2. If latest is null, assume a network error and trust the local state.
+        const isOverdueOnServer = latest ? (!latest.completed && latest.date && latest.date < td) : true;
+
+        if (isOverdueOnServer) {
+          currentLocal.date = td; 
+          await fbPatch(currentLocal.id, { date: td });
           shiftedCount++;
         }
       } catch(e) {
         console.error("Failed to verify task status:", e);
       }
     }
-    
     if (shiftedCount > 0) {
       showToast(`🔁 ${shiftedCount} overdue task${shiftedCount > 1 ? 's' : ''} rescheduled to today`);
     }
   }
-  
-  // Always await so notification sees the fully rescheduled task list
   await maybeFireAppOpenNotifs();
 }
 
@@ -1660,26 +2279,23 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') runRescheduleCheck();
 });
 
-// ─── NOTIFICATIONS ────────────────────────────────────────────────────────────
 const NOTIF_PREF_KEY      = 'flowdo_notif_enabled';
 const NOTIF_HOUR_KEY      = 'flowdo_notif_hour';
-const NOTIF_LAST_SENT_KEY = 'flowdo_notif_last_sent'; // localStorage — app owns this
+const NOTIF_LAST_SENT_KEY = 'flowdo_notif_last_sent';
 
 function notifEnabled() { return localStorage.getItem(NOTIF_PREF_KEY) === 'true'; }
 function notifHour()    { return parseInt(localStorage.getItem(NOTIF_HOUR_KEY) || '6'); }
 
-// Called after reschedule check runs — sends today's tasks to SW to show as notifications.
-// Fires at most once per calendar day, and only after the user's chosen hour.
 async function maybeFireAppOpenNotifs() {
   if (!notifEnabled()) return;
   if (!('serviceWorker' in navigator) || Notification.permission !== 'granted') return;
 
   const today = todayDS();
   const lastSent = localStorage.getItem(NOTIF_LAST_SENT_KEY);
-  if (lastSent === today) return;                            // already sent today
+  if (lastSent === today) return;
 
   const hour = new Date().getHours();
-  if (hour < notifHour()) return;                           // too early
+  if (hour < notifHour()) return;
 
   const pending = tasks.filter(t => t.date === today && !t.completed);
   if (!pending.length) return;
@@ -1687,7 +2303,6 @@ async function maybeFireAppOpenNotifs() {
   const sw = await navigator.serviceWorker.ready;
   if (!sw.active) return;
 
-  // Mark sent only after we've confirmed SW is ready and will actually fire
   localStorage.setItem(NOTIF_LAST_SENT_KEY, today);
   sw.active.postMessage({ type: 'SHOW_TASK_NOTIFS', tasks: pending, dateStr: today });
 }
@@ -1714,6 +2329,17 @@ function closeNotifSettings() {
     _closeNotifSettingsUI();
   }
 }
+
+/* function sendTestNotif() {
+    let summary = "FlowDo Notifications setup ready!";
+    const lowCount = inventoryItems.filter(i => i.count > 0 && i.count <= (i.lowStockThreshold || 1)).length;
+    const depletedCount = inventoryItems.filter(i => i.count === 0).length;
+    
+    if(lowCount > 0 || depletedCount > 0) {
+        summary = `Pantry: ${lowCount} items running low, ${depletedCount} depleted.`;
+    }
+    showToast(`🔔 ${summary}`);
+}*/
 
 function saveNotifSettings() {
   const enabled = document.getElementById('notif-enabled').checked;
@@ -1773,12 +2399,10 @@ async function sendTestNotif() {
     showToast('No pending tasks for today to preview');
     return;
   }
-  // Send with isTest:true so it uses a separate tag and won't affect the daily sent-guard
   sw.active.postMessage({ type: 'SHOW_TASK_NOTIFS', tasks: pending, dateStr: today, isTest: true });
   showToast('📳 Notification preview sent!');
 }
 
-// Handle URL params set by notification tap
 function handleNotifUrlParams() {
   const params = new URLSearchParams(location.search);
   if (!params.has('openday')) return;
@@ -1791,7 +2415,7 @@ function handleNotifUrlParams() {
   }, 1500);
 }
 
-// ─── SWIPE GESTURES (scoped to avoid interfering with taps) ───────────────────
+// ─── GESTURES & KEYBOARD INTERACTION ───
 let swipeState = null;
 const SWIPE_MIN_X = 65, SWIPE_MAX_Y = 45;
 
@@ -1813,7 +2437,7 @@ function swipeEnd(e) {
     if (currentView === 'diary') openDiaryDay(targetDay); else openDay(targetDay);
   }
   if (swipeState.mode === 'tab') {
-    const order = ['calendar', 'diary', 'backlog', 'search'];
+    const order = ['calendar', 'inventory', 'backlog', 'diary', 'search'];
     const current = document.getElementById('search-panel').classList.contains('open') ? 'search' : currentView;
     const i = order.indexOf(current);
     const next = dx < 0 ? (i + 1) % order.length : (i - 1 + order.length) % order.length;
@@ -1825,7 +2449,7 @@ function swipeEnd(e) {
 
 document.getElementById('main').addEventListener('touchstart', e => {
   const target = e.target && e.target.nodeType === 1 ? e.target : null;
-  if (!target || target.closest('.cal-box')) return; // calendar area reserved for month swipe
+  if (!target || target.closest('.cal-box')) return;
   swipeStart('tab', e);
 }, { passive: true });
 document.getElementById('main').addEventListener('touchend', swipeEnd, { passive: true });
@@ -1834,10 +2458,9 @@ document.getElementById('search-panel').addEventListener('touchend', swipeEnd, {
 document.getElementById('day-panel').addEventListener('touchstart', e => swipeStart('day', e, currentSelDay), { passive: true });
 document.getElementById('day-panel').addEventListener('touchend', swipeEnd, { passive: true });
 
-// ─── KEYBOARD ─────────────────────────────────────────────────────────────────
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
-    if (_modalStack.length) { _popModal(); }  // closes whatever is on top via back nav
+    if (_modalStack.length) { _popModal(); }
     else { closeSearch(); closeUserMenu(); }
   }
   if (e.key === 'Enter' && document.getElementById('task-modal').style.display !== 'none') {
@@ -1845,9 +2468,7 @@ document.addEventListener('keydown', e => {
   }
 });
 
-// ─── CLOSE DROPDOWNS ON OUTSIDE CLICK ─────────────────────────────────────────
 document.addEventListener('pointerdown', e => {
-  // Handle Search Dropdown
   const searchInput = document.getElementById('search-input');
   const searchDropdown = document.getElementById('search-suggestions-dropdown');
   if (searchDropdown && searchDropdown.style.display !== 'none') {
@@ -1856,7 +2477,6 @@ document.addEventListener('pointerdown', e => {
     }
   }
   
-  // Handle Task Title Dropdown
   const titleInput = document.getElementById('f-title');
   const titleDropdown = document.getElementById('task-title-dropdown');
   if (titleDropdown && titleDropdown.style.display !== 'none') {
