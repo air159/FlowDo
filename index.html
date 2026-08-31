@@ -1522,7 +1522,7 @@ function taskCardHTML(t, {showBacklog=false, showMove=false}) {
 function renderInventory() {
   // Low stock items (always first)
   const lowStock = inventoryItems
-    .filter(i => i.count > 0 && i.count <= i.low)
+    .filter(i => i.count > 0 && i.count <= i.lowStockThreshold)
     .sort((a, b) => {
       if (a.count !== b.count) return a.count - b.count;
       return a.title.localeCompare(b.title);
@@ -1530,14 +1530,16 @@ function renderInventory() {
 
   // Everything else in stock
   const normalStock = inventoryItems
-    .filter(i => i.count > i.low)
+    .filter(i => i.count > i.lowStockThreshold)
     .sort((a, b) => {
       if (a.count !== b.count) return a.count - b.count;
       return a.title.localeCompare(b.title);
     });
 
-  // Keep depleted items exactly in their current order
-  const depleted = inventoryItems.filter(i => i.count === 0);
+  // Out of stock (alphabetical)
+  const depleted = inventoryItems
+    .filter(i => i.count === 0)
+    .sort((a, b) => a.title.localeCompare(b.title));
 
   const active = [...lowStock, ...normalStock];
 
@@ -1558,12 +1560,26 @@ function invCardHTML(i) {
   const isLow = !isDepleted && i.count <= (i.lowStockThreshold || 1);
   const cls = isDepleted ? 'inv-card depleted' : (isLow ? 'inv-card low-stock' : 'inv-card');
   const badge = isLow ? `<span class="inv-badge">Low Stock</span>` : '';
+  
+  // 1. Create the timestamp badge if updatedAt exists
+  let updatedTag = '';
+  if (i.updatedAt) {
+    const dateObj = new Date(i.updatedAt);
+    const formattedDate = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    // Add a left margin only if it has to sit next to the Low Stock badge
+    const spacing = isLow ? ' style="margin-left: 8px;"' : '';
+    updatedTag = `<span class="rec-badge"${spacing}>↻ Updated: ${formattedDate}</span>`;
+  }
+
+  // 2. Ensure the meta container renders if either badge exists
+  const metaHTML = (isLow || updatedTag) ? `<div class="inv-meta">${badge}${updatedTag}</div>` : '';
+  
   const notesHTML = i.notes ? `<div class="t-notes">${escHtml(i.notes)}</div>` : '';
 
   return `<div class="inv-card ${cls}" id="inv-${i.id}">
     <div class="inv-info" onclick="editInvItem('${i.id}')">
       <div class="inv-name">${escHtml(i.title)}</div>
-      ${isLow ? `<div class="inv-meta">${badge}</div>` : ''}
+      ${metaHTML}
       ${notesHTML}
     </div>
     <div class="stepper" onclick="event.stopPropagation()">
