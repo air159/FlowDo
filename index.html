@@ -233,12 +233,6 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#1e3a5f!import
 .interval-btns{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;}
 .int-btn{padding:5px 12px;border-radius:8px;border:1px solid #e2e8f0;background:#faf8f5;font-size:12px;font-weight:700;}
 .int-btn.active{background:#eff6ff;border-color:#1e3a5f;color:#1e3a5f;}
-.schedule-btns{display:flex;gap:6px;flex-wrap:wrap;}
-.schedule-btn{flex:1;min-width:130px;padding:8px 10px;border-radius:8px;border:1px solid #e2e8f0;background:#faf8f5;color:#374151;font-size:12px;font-weight:700;text-align:left;}
-.schedule-btn.active{background:#eff6ff;border-color:#1e3a5f;color:#1e3a5f;}
-.weekday-row{display:flex;align-items:center;gap:8px;margin-top:8px;}
-.weekday-row span{font-size:13px;color:#64748b;white-space:nowrap;}
-.weekday-row select{flex:1;padding:8px 10px;border-radius:8px;border:1px solid #e2e8f0;font-size:14px;color:#1e293b;background:#faf8f5;}
 .priority-btns{display:flex;gap:6px;flex-wrap:wrap;}
 .p-btn{flex:1;padding:8px 4px;border-radius:8px;border:1.5px solid #e2e8f0;font-size:12px;font-weight:800;background:transparent;color:#64748b;}
 .custom-days-row{display:flex;align-items:center;gap:8px;}
@@ -520,26 +514,6 @@ if (localStorage.getItem('flowdo_was_logged_in') === 'true') {
         <span>Custom:</span>
         <input type="number" min="1" id="f-rec-days" value="7" oninput="syncIntervalBtns()"/>
         <span>days</span>
-      </div>
-      <div id="f-recurrence-schedule">
-        <div class="form-hint">Schedule the next task</div>
-        <div class="schedule-btns" id="schedule-btns">
-          <button type="button" class="schedule-btn active" data-schedule="interval" onclick="setRecurrenceSchedule('interval')">After the repeat interval</button>
-          <button type="button" class="schedule-btn" data-schedule="weekday" onclick="setRecurrenceSchedule('weekday')">On the next weekday</button>
-        </div>
-        <div class="weekday-row" id="f-weekday-row" style="display:none">
-          <span>First</span>
-          <select id="f-rec-weekday" aria-label="Recurring weekday">
-            <option value="0">Sunday</option>
-            <option value="1">Monday</option>
-            <option value="2">Tuesday</option>
-            <option value="3">Wednesday</option>
-            <option value="4">Thursday</option>
-            <option value="5">Friday</option>
-            <option value="6">Saturday</option>
-          </select>
-          <span>after completion</span>
-        </div>
       </div>
     </div>
     <div class="form-group">
@@ -1107,21 +1081,9 @@ function addDays(ds, n) {
   const d = new Date(ds + 'T12:00:00'); d.setDate(d.getDate() + n);
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
-function nextWeekdayAfter(ds, weekday) {
-  const d = new Date(ds + 'T12:00:00');
-  const daysUntil = (weekday - d.getDay() + 7) % 7 || 7;
-  d.setDate(d.getDate() + daysUntil);
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-}
 function genId() { return Date.now() + '-' + Math.random().toString(36).slice(2,7); }
 function fmtDate(ds) {
   return new Date(ds + 'T12:00:00').toLocaleDateString('en-US', {weekday:'long',month:'long',day:'numeric'});
-}
-const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-function recurrenceLabel(task) {
-  return task.recurrenceSchedule === 'weekday'
-    ? `next ${WEEKDAYS[task.recurringWeekday] || 'weekday'}`
-    : `every ${task.recurringDays}d`;
 }
 
 function daysBetween(start, end) {
@@ -1166,7 +1128,6 @@ let editTaskId    = null;
 let formType      = 'daily';
 let formPriority  = 'medium';
 let formRecDays   = 7;
-let formRecurrenceSchedule = 'interval';
 let formMode      = 'task';
 let diaryEntryKind = 'food';
 let backlogView   = 'tasks';
@@ -1543,7 +1504,7 @@ function taskCardHTML(t, {showBacklog=false, showMove=false}) {
   const titleCls = t.completed ? 't-title done' : 't-title';
   
   let meta = `<span class="p-badge" style="background:${p.bg};color:${p.color}">${p.label}</span>`;
-  if (t.type === 'recurring') meta += `<span class="rec-badge">🔄 ${recurrenceLabel(t)}</span>`;
+  if (t.type === 'recurring') meta += `<span class="rec-badge">🔄 every ${t.recurringDays}d</span>`;
   const notesHTML = t.notes ? `<div class="t-notes">${escHtml(t.notes)}</div>` : '';
   return `<div class="t-card" id="card-${t.id}" style="border-left-color:${t.completed?'#d1d5db':p.dot}">
     <div class="t-main" onclick="editTask('${t.id}')">
@@ -1754,13 +1715,11 @@ async function toggleTask(id) {
     if (!t.completed) {
       triggerDopamineHit(id);
       
-      t.completed = true; t.completedAt = todayDS();
+      t.completed = true; t.completedAt = t.date || todayDS();
       await fbPatch(t.id, { completed: true, completedAt: t.completedAt });
       if (t.type === 'recurring' && t.recurringDays) {
-        const completionDate = t.completedAt;
-        const childDate = t.recurrenceSchedule === 'weekday'
-          ? nextWeekdayAfter(completionDate, t.recurringWeekday)
-          : addDays(completionDate, t.recurringDays);
+        const base = t.date || todayDS();
+        const childDate = addDays(base, t.recurringDays);
         const existingChild = tasks.find(x => x.parentRecurringId === t.id && x.date === childDate && x.type === 'recurring');
         const childId = existingChild ? existingChild.id : genId();
         t.spawnedId = childId;
@@ -1769,8 +1728,6 @@ async function toggleTask(id) {
           const child = {id:childId, title:t.title, type:'recurring', date:childDate,
             parentRecurringId:t.id,
             priority:t.priority, recurringDays:t.recurringDays, notes:t.notes||'',
-            recurrenceSchedule:t.recurrenceSchedule || 'interval',
-            recurringWeekday:Number.isInteger(t.recurringWeekday) ? t.recurringWeekday : null,
             autoReschedule: t.autoReschedule || false,
             completed:false, completedAt:null, createdAt:new Date().toISOString()};
           await fbSave(child);
@@ -1857,7 +1814,6 @@ function applyFormModeLabels() {
   document.getElementById('f-type-label').textContent = isDiary ? `${kindName} type` : 'Task type';
   document.getElementById('f-priority-label').textContent = isDiary ? (diaryEntryKind === 'food' ? 'Amount' : 'Intensity') : 'Priority / Urgency';
   document.getElementById('f-priority-hint').textContent = isDiary ? (diaryEntryKind === 'food' ? 'Use the four levels to capture how much you ate.' : 'Use the four levels to capture symptom intensity.') : '🔴 Critical = non-negotiable  |  🟠 High = do today  |  🟡 Medium = soon  |  ⚪ Low = whenever';
-  document.getElementById('f-recurrence-schedule').style.display = isDiary ? 'none' : '';
 }
 
 function openDiaryForm(entry, defaultDate, kind) {
@@ -1875,7 +1831,6 @@ function openDiaryForm(entry, defaultDate, kind) {
   const rd = entry ? (entry.recurringDays || 7) : 7;
   formRecDays = rd;
   document.getElementById('f-rec-days').value = rd;
-  setRecurrenceSchedule('interval');
   document.getElementById('delete-btn').style.display = entry ? '' : 'none';
   syncIntervalBtns();
   updateSaveBtn();
@@ -1901,8 +1856,6 @@ function openForm(task, defaultDate) {
   const rd = task ? (task.recurringDays || 7) : 7;
   formRecDays = rd;
   document.getElementById('f-rec-days').value = rd;
-  document.getElementById('f-rec-weekday').value = task && Number.isInteger(task.recurringWeekday) ? task.recurringWeekday : new Date((task && task.date ? task.date : todayDS()) + 'T12:00:00').getDay();
-  setRecurrenceSchedule(task && task.recurrenceSchedule === 'weekday' ? 'weekday' : 'interval');
   document.getElementById('delete-btn').style.display = task ? '' : 'none';
   syncIntervalBtns();
   updateSaveBtn();
@@ -1951,15 +1904,6 @@ function setType(type) {
   document.getElementById('f-date-group').style.display = type === 'general' ? 'none' : '';
   document.getElementById('f-date-label').textContent = type === 'recurring' ? 'Starting date' : 'Date';
   document.getElementById('f-interval-group').style.display = type === 'recurring' ? '' : 'none';
-  document.getElementById('f-recurrence-schedule').style.display = type === 'recurring' && formMode !== 'diary' ? '' : 'none';
-}
-
-function setRecurrenceSchedule(schedule) {
-  formRecurrenceSchedule = schedule;
-  document.querySelectorAll('#schedule-btns .schedule-btn').forEach(btn => {
-    btn.className = 'schedule-btn' + (btn.dataset.schedule === schedule ? ' active' : '');
-  });
-  document.getElementById('f-weekday-row').style.display = schedule === 'weekday' ? '' : 'none';
 }
 
 function setPriority(p, fromForm) {
@@ -2021,8 +1965,6 @@ async function saveTask() {
 
     const notes = document.getElementById('f-notes').value.trim();
     const recDays = formType === 'recurring' ? (parseInt(document.getElementById('f-rec-days').value) || 7) : null;
-    const recurrenceSchedule = formType === 'recurring' && formMode === 'task' ? formRecurrenceSchedule : 'interval';
-    const recurringWeekday = recurrenceSchedule === 'weekday' ? parseInt(document.getElementById('f-rec-weekday').value, 10) : null;
     const autoReschedule = formType !== 'general';
 
     if (formMode === 'diary') {
@@ -2043,11 +1985,11 @@ async function saveTask() {
     if (editTaskId) {
       const t = tasks.find(x => x.id === editTaskId);
       if (t) {
-        t.title=title; t.type=formType; t.date=date; t.priority=formPriority; t.recurringDays=recDays; t.notes=notes; t.recurrenceSchedule=recurrenceSchedule; t.recurringWeekday=recurringWeekday; t.autoReschedule=autoReschedule;
+        t.title=title; t.type=formType; t.date=date; t.priority=formPriority; t.recurringDays=recDays; t.notes=notes; t.autoReschedule=autoReschedule;
         await fbSave(t);
       }
     } else {
-      const t = {id:genId(), title, type:formType, date, priority:formPriority, recurringDays:recDays, notes, recurrenceSchedule, recurringWeekday, autoReschedule, completed:false, completedAt:null, createdAt:new Date().toISOString()};
+      const t = {id:genId(), title, type:formType, date, priority:formPriority, recurringDays:recDays, notes, autoReschedule, completed:false, completedAt:null, createdAt:new Date().toISOString()};
       await fbSave(t);
     }
     
@@ -2208,7 +2150,7 @@ function searchResultHTML(t, q) {
   } else if (t.date) {
     dateChip = `<span class="src-date-chip">📅 ${fmtDate(t.date)}</span>`;
   }
-  if (t.type === 'recurring') dateChip += `<span class="src-type-chip">🔄 ${recurrenceLabel(t)}</span>`;
+  if (t.type === 'recurring') dateChip += `<span class="src-type-chip">🔄 every ${t.recurringDays}d</span>`;
   
   let clickAction = '';
   if (isDiary) {
