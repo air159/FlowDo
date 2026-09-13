@@ -155,18 +155,6 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#1e3a5f!import
 .add-task-btn{padding:12px;border-radius:10px;border:2px dashed #cbd5e1;background:transparent;color:#94a3b8;font-size:14px;font-weight:700;margin:0 16px 16px;flex-shrink:0;}
 .add-task-btn:hover{border-color:#1e3a5f;color:#1e3a5f;background:#f0f7ff;}
 
-/* DIARY THEME */
-.diary-theme .panel-hdr, .modal.diary-theme .modal-hdr {background:linear-gradient(135deg,#7c2d12,#431407);}
-.diary-theme .m-title{color:#7c2d12;}
-.diary-theme .m-arrow:hover{background:#fff7ed;border-color:#ea580c;}
-.diary-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 16px 16px;flex-shrink:0;}
-.diary-actions .add-task-btn{margin:0;}
-.diary-section-title{font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:1px;color:#7c2d12;padding:10px 4px 2px;}
-.diary-entry .t-check{display:none;}
-.backlog-toggle{display:flex;gap:6px;padding:12px 16px 0;background:#fff;}
-.backlog-toggle button{flex:1;padding:9px 10px;border-radius:999px;border:1.5px solid #e2e8f0;background:#faf8f5;color:#64748b;font-size:13px;font-weight:800;}
-.backlog-toggle button.active{background:#eff6ff;border-color:#1e3a5f;color:#1e3a5f;}
-
 /* TASK CARD */
 .t-card{background:#fff;border:1px solid #e8e3da;border-left:4px solid;border-radius:10px;overflow:hidden;flex-shrink:0;}
 .t-card:hover{box-shadow:0 2px 10px rgba(0,0,0,.08);}
@@ -344,13 +332,11 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#1e3a5f!import
       <button class="tab-btn active" id="tab-cal" onclick="switchView('calendar')">📅 Calendar</button>
       <button class="tab-btn" id="tab-inv" onclick="switchView('inventory')">📦 Pantry</button>
       <button class="tab-btn" id="tab-bl" onclick="switchView('backlog')">📦 Backlog <span class="tab-badge" id="bl-badge" style="display:none">0</span></button>
-      <button class="tab-btn" id="tab-diary" onclick="switchView('diary')">🍽️ Diary</button>
     </div>
   </header>
 
   <div id="main">
     <div id="view-calendar"></div>
-    <div id="view-diary" style="display:none"></div>
     <div id="view-backlog" style="display:none"></div>
     <div id="view-inventory" style="display:none"></div>
   </div>
@@ -612,7 +598,6 @@ provider.setCustomParameters({
 enableIndexedDbPersistence(db).catch(() => {});
 
 let unsubscribeTasks = null;
-let unsubscribeDiary = null;
 let unsubscribeInventory = null;
 let unsubscribeSettings = null;
 
@@ -634,28 +619,6 @@ window._listenTasks = (uid, onChange) => {
   if (unsubscribeTasks) unsubscribeTasks();
   const col = collection(db, 'users', uid, 'tasks');
   unsubscribeTasks = onSnapshot(col,
-    snap => {
-      const docs = [];
-      snap.forEach(d => docs.push(d.data()));
-      onChange(docs, null);
-    },
-    err => onChange(null, err)
-  );
-};
-
-window._listenDiary = (uid, onChange) => {
-  if (uid === 'local_guest') {
-    const load = () => {
-      const data = JSON.parse(localStorage.getItem('flowdo_local_diary') || '[]');
-      onChange(data, null);
-    };
-    load();
-    window._triggerLocalDiaryUpdate = load;
-    return;
-  }
-  if (unsubscribeDiary) unsubscribeDiary();
-  const col = collection(db, 'users', uid, 'diary');
-  unsubscribeDiary = onSnapshot(col,
     snap => {
       const docs = [];
       snap.forEach(d => docs.push(d.data()));
@@ -707,7 +670,6 @@ window._listenNotifSettings = (uid, onChange) => {
 
 window._stopListening = () => {
   if (unsubscribeTasks) { unsubscribeTasks(); unsubscribeTasks = null; }
-  if (unsubscribeDiary) { unsubscribeDiary(); unsubscribeDiary = null; }
   if (unsubscribeInventory) { unsubscribeInventory(); unsubscribeInventory = null; }
   if (unsubscribeSettings) { unsubscribeSettings(); unsubscribeSettings = null; }
 };
@@ -736,19 +698,6 @@ window._saveTask = async (uid, task) => {
     return;
   }
   await setDoc(doc(db, 'users', uid, 'tasks', task.id), task);
-};
-
-window._saveDiaryEntry = async (uid, entry) => {
-  if (uid === 'local_guest') {
-    const diary = JSON.parse(localStorage.getItem('flowdo_local_diary') || '[]');
-    const idx = diary.findIndex(d => d.id === entry.id);
-    if (idx > -1) diary[idx] = entry;
-    else diary.push(entry);
-    localStorage.setItem('flowdo_local_diary', JSON.stringify(diary));
-    if (window._triggerLocalDiaryUpdate) window._triggerLocalDiaryUpdate();
-    return;
-  }
-  await setDoc(doc(db, 'users', uid, 'diary', entry.id), entry);
 };
 
 window._saveInventoryItem = async (uid, item) => {
@@ -814,17 +763,6 @@ window._deleteTask = async (uid, id) => {
   await deleteDoc(doc(db, 'users', uid, 'tasks', id));
 };
 
-window._deleteDiaryEntry = async (uid, id) => {
-  if (uid === 'local_guest') {
-    let diary = JSON.parse(localStorage.getItem('flowdo_local_diary') || '[]');
-    diary = diary.filter(d => d.id !== id);
-    localStorage.setItem('flowdo_local_diary', JSON.stringify(diary));
-    if (window._triggerLocalDiaryUpdate) window._triggerLocalDiaryUpdate();
-    return;
-  }
-  await deleteDoc(doc(db, 'users', uid, 'diary', id));
-};
-
 window._deleteInventoryItem = async (uid, id) => {
   if (uid === 'local_guest') {
     let inv = JSON.parse(localStorage.getItem('flowdo_local_inventory') || '[]');
@@ -887,16 +825,6 @@ window.onAuthStateChange = function(user) {
         initialCheckDone = true;
         setTimeout(runRescheduleCheck, 600);
       }
-    });
-
-    window._listenDiary(user.uid, (docs, err) => {
-      if (err) { setSyncStatus('error'); return; }
-      diaryEntries = docs || [];
-      if (user.uid !== 'local_guest') {
-        localStorage.setItem('flowdo_cached_diary', JSON.stringify(diaryEntries));
-      }
-      setSyncStatus('synced');
-      rerender();
     });
 
     window._listenInventory(user.uid, (docs, err) => {
@@ -1022,7 +950,6 @@ function closeUserMenu() {
 // ─── TASK PERSISTENCE (Handles dynamic switching between guest sandbox and sync tables) ───
 const isLocalGuestSession = localStorage.getItem('flowdo_is_local_guest') === 'true';
 let tasks = JSON.parse(localStorage.getItem(isLocalGuestSession ? 'flowdo_local_tasks' : 'flowdo_cached_tasks') || '[]');
-let diaryEntries = JSON.parse(localStorage.getItem(isLocalGuestSession ? 'flowdo_local_diary' : 'flowdo_cached_diary') || '[]');
 let inventoryItems = JSON.parse(localStorage.getItem(isLocalGuestSession ? 'flowdo_local_inventory' : 'flowdo_cached_inventory') || '[]');
 const pendingToggleIds = new Set();
 
@@ -1030,17 +957,6 @@ async function fbSave(task) {
   if (!currentUser) return;
   setSyncStatus('syncing');
   try { await window._saveTask(currentUser.uid, task); } catch(e) { setSyncStatus('error'); }
-}
-
-async function fbSaveDiary(entry) {
-  if (!currentUser) return;
-  setSyncStatus('syncing');
-  try { await window._saveDiaryEntry(currentUser.uid, entry); } catch(e) { setSyncStatus('error'); }
-}
-async function fbDeleteDiary(id) {
-  if (!currentUser) return;
-  setSyncStatus('syncing');
-  try { await window._deleteDiaryEntry(currentUser.uid, id); } catch(e) { setSyncStatus('error'); }
 }
 
 async function fbDelete(id) {
@@ -1086,21 +1002,6 @@ function fmtDate(ds) {
   return new Date(ds + 'T12:00:00').toLocaleDateString('en-US', {weekday:'long',month:'long',day:'numeric'});
 }
 
-function daysBetween(start, end) {
-  return Math.round((new Date(end + 'T12:00:00') - new Date(start + 'T12:00:00')) / 86400000);
-}
-function diaryEntriesForDate(ds) {
-  return diaryEntries.filter(x => {
-    if (x.type === 'general') return false;
-    if (x.date === ds) return true;
-    if (x.type === 'recurring' && x.date && x.recurringDays && x.date < ds) {
-      const diff = daysBetween(x.date, ds);
-      return diff >= 0 && diff % x.recurringDays === 0;
-    }
-    return false;
-  });
-}
-
 // ─── PRIORITIES ───
 const PRIO = {
   critical: { label:'Critical', color:'#b91c1c', bg:'#fee2e2', dot:'#ef4444' },
@@ -1123,37 +1024,29 @@ function cellColor(ds) {
 let currentView   = 'calendar';
 let currentSelDay = null;
 let calDate       = new Date();
-let diaryDate     = new Date();
 let editTaskId    = null;
 let formType      = 'daily';
 let formPriority  = 'medium';
 let formRecDays   = 7;
-let formMode      = 'task';
-let diaryEntryKind = 'food';
-let backlogView   = 'tasks';
 
 // ─── VIEW SWITCHING ───
 function switchView(v) {
   currentView = v;
   document.getElementById('view-calendar').style.display = v === 'calendar' ? '' : 'none';
-  document.getElementById('view-diary').style.display    = v === 'diary'    ? '' : 'none';
   document.getElementById('view-backlog').style.display  = v === 'backlog'  ? '' : 'none';
   document.getElementById('view-inventory').style.display = v === 'inventory' ? '' : 'none';
 
   document.getElementById('tab-cal').className = 'tab-btn' + (v==='calendar'?' active':'');
-  document.getElementById('tab-diary').className = 'tab-btn' + (v==='diary'?' active':'');
   document.getElementById('tab-bl').className  = 'tab-btn' + (v==='backlog'?' active':'');
   document.getElementById('tab-inv').className  = 'tab-btn' + (v==='inventory'?' active':'');
 
   if (v === 'backlog') renderBacklog();
-  else if (v === 'diary') renderDiaryCalendar();
   else if (v === 'inventory') renderInventory();
   else renderCalendar();
 }
 
 function fabClick() {
-  if (currentView === 'diary') openDiaryForm(null, currentSelDay || todayDS(), 'food');
-  else if (currentView === 'inventory') openInvForm();
+  if (currentView === 'inventory') openInvForm();
   else openForm(null, currentSelDay || todayDS());
 }
 
@@ -1215,61 +1108,6 @@ function renderCalendar() {
   }
   updateBacklogBadge();
 }
-
-function diaryCellColor(ds) {
-  const count = diaryEntriesForDate(ds).filter(x => x.entryKind === 'symptom').length;
-  if (count <= 0) return { bg:'#dcfce7', bar:'#16a34a', text:'#15803d' };
-  if (count === 1) return { bg:'#fef9c3', bar:'#ca8a04', text:'#a16207' };
-  if (count <= 3) return { bg:'#fed7aa', bar:'#ea580c', text:'#9a3412' };
-  return { bg:'#fee2e2', bar:'#dc2626', text:'#991b1b' };
-}
-
-function renderDiaryCalendar() {
-  const year = diaryDate.getFullYear(), month = diaryDate.getMonth();
-  const firstDay = new Date(year, month, 1).getDay();
-  const daysInMonth = new Date(year, month+1, 0).getDate();
-  const td = todayDS();
-  let html = `<div class="cal-box diary-theme">
-    <div class="month-nav">
-      <button class="m-arrow" onclick="prevDiaryMonth()">‹</button>
-      <h2 class="m-title">🍽️ ${MONTHS[month]} ${year}</h2>
-      <button class="m-arrow" onclick="nextDiaryMonth()">›</button>
-      <button class="today-btn" onclick="goDiaryToday()">Today</button>
-    </div>
-    <div class="dow-row">${DOW.map(d=>`<div class="dow-cell">${d}</div>`).join('')}</div>
-    <div class="cal-grid">${'<div class="empty-cell"></div>'.repeat(firstDay)}`;
-  for (let i = 1; i <= daysInMonth; i++) {
-    const ds = `${year}-${String(month+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
-    const de = diaryEntriesForDate(ds);
-    const foods = de.filter(t => t.entryKind === 'food').length;
-    const symptoms = de.filter(t => t.entryKind === 'symptom').length;
-    const col = diaryCellColor(ds);
-    const isToday = ds === td, isSel = ds === currentSelDay;
-    const outline = isSel ? '2.5px solid #7c2d12' : isToday ? '2.5px solid #f59e0b' : 'none';
-    html += `<div class="day-cell" style="background:${col.bg};outline:${outline};outline-offset:-1px" onclick="openDiaryDay('${ds}')">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start">
-        <span class="day-num${isToday ? ' is-today' : ''}" style="${isToday?'':`color:${col.text}`}">${i}</span>
-        ${de.length ? `<span style="font-size:9px;font-weight:800;color:${col.text}">${symptoms} sx</span>` : ''}
-      </div>
-      ${de.length ? `<div class="mini-bar-bg"><div class="mini-bar-fill" style="width:${Math.min(symptoms,4)/4*100}%;background:${col.bar}"></div></div>
-      <div class="dot-row"><span style="font-size:10px">🍽️${foods}</span><span style="font-size:10px">🌡️${symptoms}</span></div>` : ''}
-    </div>`;
-  }
-  html += `</div><div class="legend">
-    <span class="leg-item"><span class="leg-dot" style="background:#dcfce7;border:1.5px solid #16a34a"></span>0 symptoms</span>
-    <span class="leg-item"><span class="leg-dot" style="background:#fef9c3;border:1.5px solid #ca8a04"></span>1 symptom</span>
-    <span class="leg-item"><span class="leg-dot" style="background:#fed7aa;border:1.5px solid #ea580c"></span>2–3 symptoms</span>
-    <span class="leg-item"><span class="leg-dot" style="background:#fee2e2;border:1.5px solid #dc2626"></span>4+ symptoms</span>
-  </div></div>`;
-  document.getElementById('view-diary').innerHTML = html;
-  const calBox = document.querySelector('#view-diary .cal-box');
-  if (calBox) { calBox.addEventListener('touchstart', e => swipeStart('diaryMonth', e), { passive:true }); calBox.addEventListener('touchend', swipeEnd, { passive:true }); }
-  updateBacklogBadge();
-}
-
-function prevDiaryMonth() { diaryDate = new Date(diaryDate.getFullYear(), diaryDate.getMonth()-1, 1); renderDiaryCalendar(); }
-function nextDiaryMonth() { diaryDate = new Date(diaryDate.getFullYear(), diaryDate.getMonth()+1, 1); renderDiaryCalendar(); }
-function goDiaryToday() { diaryDate = new Date(); renderDiaryCalendar(); openDiaryDay(todayDS()); }
 
 function prevMonth() { calDate = new Date(calDate.getFullYear(), calDate.getMonth()-1, 1); renderCalendar(); }
 function nextMonth() { calDate = new Date(calDate.getFullYear(), calDate.getMonth()+1, 1); renderCalendar(); }
@@ -1334,60 +1172,8 @@ function closeConfirmModal(approved) {
   }
 }
 
-function openDiaryDay(ds) {
-  currentSelDay = ds;
-  renderDiaryCalendar();
-  const td = todayDS();
-  document.getElementById('day-panel').classList.add('diary-theme');
-  document.getElementById('panel-date-label').textContent = fmtDate(ds);
-  const pillEl = document.getElementById('panel-date-pill');
-  pillEl.innerHTML = ds === td ? '<span class="today-pill">Today</span>' : ds < td ? '<span class="past-pill">Past</span>' : '';
-  renderDiaryPanel(ds);
-  document.getElementById('panel-backdrop').style.display = '';
-  setTimeout(() => document.getElementById('day-panel').classList.add('open'), 10);
-  if (!panelHistoryPushed) { panelHistoryPushed = true; _pushModal(_closePanelUI); }
-}
-
-function renderDiaryPanel(ds) {
-  const entries = diaryEntriesForDate(ds).sort((a,b) => (a.createdAt || '').localeCompare(b.createdAt || ''));
-  const foods = entries.filter(t => t.entryKind === 'food');
-  const symptoms = entries.filter(t => t.entryKind === 'symptom');
-  const progSec = document.getElementById('panel-prog-section');
-  progSec.style.display = '';
-  const col = diaryCellColor(ds);
-  document.getElementById('prog-label').textContent = `${foods.length} food${foods.length===1?'':'s'} • ${symptoms.length} symptom${symptoms.length===1?'':'s'}`;
-  document.getElementById('prog-pct').textContent = symptoms.length >= 4 ? '4+' : String(symptoms.length);
-  document.getElementById('prog-pct').style.color = col.bar;
-  document.getElementById('prog-fill').style.width = `${Math.min(symptoms.length,4)/4*100}%`;
-  document.getElementById('prog-fill').style.background = col.bar;
-  document.getElementById('prog-celeb').style.display = 'none';
-  const section = (title, icon, list) => `<div class="diary-section-title">${icon} ${title}</div>` + (list.length ? list.map(diaryCardHTML).join('') : `<div class="empty-state" style="padding:18px 12px"><div class="empty-sub">No ${title.toLowerCase()} logged.</div></div>`);
-  document.getElementById('panel-task-list').innerHTML = section('Food', '🍽️', foods) + section('Symptoms', '🌡️', symptoms);
-  document.getElementById('panel-add-btn').style.display = 'none';
-  let actions = document.getElementById('diary-panel-actions');
-  if (!actions) {
-    actions = document.createElement('div');
-    actions.id = 'diary-panel-actions';
-    actions.className = 'diary-actions';
-    document.getElementById('day-panel').appendChild(actions);
-  }
-  actions.innerHTML = `<button class="add-task-btn" onclick="openDiaryForm(null, currentSelDay, 'food')">+ Add Food</button><button class="add-task-btn" onclick="openDiaryForm(null, currentSelDay, 'symptom')">+ Add Symptom</button>`;
-  actions.style.display = '';
-}
-
-function diaryCardHTML(t) {
-  const p = PRIO[t.priority] || PRIO.medium;
-  const label = t.entryKind === 'food' ? 'Amount' : 'Intensity';
-  const notesHTML = t.notes ? `<div class="t-notes">${escHtml(t.notes)}</div>` : '';
-  return `<div class="t-card diary-entry" id="card-${t.id}" style="border-left-color:${p.dot}"><div class="t-main" onclick="editDiaryEntry('${t.id}')"><div style="flex:1;min-width:0"><div class="t-title">${escHtml(t.title)}</div><div class="t-meta"><span class="p-badge" style="background:${p.bg};color:${p.color}">${label}: ${p.label}</span>${t.type === 'recurring' ? `<span class="rec-badge">🔄 every ${t.recurringDays}d</span>` : ''}</div>${notesHTML}</div></div></div>`;
-}
-
 function openDay(ds) {
   currentSelDay = ds;
-  document.getElementById('day-panel').classList.remove('diary-theme');
-  document.getElementById('panel-add-btn').style.display = '';
-  const diaryActions = document.getElementById('diary-panel-actions');
-  if (diaryActions) diaryActions.style.display = 'none';
   renderCalendar();
   const td = todayDS();
   document.getElementById('panel-date-label').textContent = fmtDate(ds);
@@ -1404,13 +1190,9 @@ function openDay(ds) {
 
 function _closePanelUI() {
   panelHistoryPushed = false;
-  document.getElementById('day-panel').classList.remove('diary-theme');
-  document.getElementById('panel-add-btn').style.display = '';
-  const diaryActions = document.getElementById('diary-panel-actions');
-  if (diaryActions) diaryActions.style.display = 'none';
   document.getElementById('day-panel').classList.remove('open');
   document.getElementById('panel-backdrop').style.display = 'none';
-  setTimeout(() => { currentSelDay = null; if (currentView === 'diary') renderDiaryCalendar(); else renderCalendar(); }, 300);
+  setTimeout(() => { currentSelDay = null; renderCalendar(); }, 300);
 }
 
 function closePanel() {
@@ -1460,7 +1242,6 @@ function renderPanelTasks(ds) {
 
 // ─── BACKLOG ───
 function renderBacklog() {
-  if (backlogView === 'diary') return renderDiaryFavorites();
   const bl = tasks.filter(t => t.type === 'general').sort(taskPanelSort);
   const pending = bl.filter(t => !t.completed), done = bl.filter(t => t.completed);
   let inner = '';
@@ -1472,27 +1253,8 @@ function renderBacklog() {
   }
   document.getElementById('view-backlog').innerHTML = `<div class="bl-box">
     <div class="bl-hdr"><div class="bl-title">📦 Backlog</div><div class="bl-sub">No deadline — do when you have time. Use "Assign to date" to schedule.</div></div>
-    ${backlogToggleHTML()}
     <div class="bl-body">${inner}</div>
     <button class="add-task-btn" style="margin:0 16px 16px;display:block;width:calc(100% - 32px)" onclick="openForm(null,'')">+ Add Backlog Task</button>
-  </div>`;
-  updateBacklogBadge();
-}
-
-function backlogToggleHTML() {
-  return `<div class="backlog-toggle"><button class="${backlogView==='tasks'?'active':''}" onclick="backlogView='tasks';renderBacklog()">Tasks</button><button class="${backlogView==='diary'?'active':''}" onclick="backlogView='diary';renderBacklog()">Diary Favorites</button></div>`;
-}
-
-function renderDiaryFavorites() {
-  const favs = diaryEntries.filter(t => t.type === 'general').sort(taskPanelSort);
-  const foods = favs.filter(t => t.entryKind === 'food');
-  const symptoms = favs.filter(t => t.entryKind === 'symptom');
-  const section = (title, icon, list) => `<div class="diary-section-title">${icon} ${title}</div>` + (list.length ? list.map(diaryCardHTML).join('') : `<div class="empty-state" style="padding:18px 12px"><div class="empty-sub">No saved ${title.toLowerCase()} favorites.</div></div>`);
-  document.getElementById('view-backlog').innerHTML = `<div class="bl-box">
-    <div class="bl-hdr"><div class="bl-title">⭐ Diary Favorites</div><div class="bl-sub">Reusable foods and symptoms with no date. Add recurring meals or symptoms here.</div></div>
-    ${backlogToggleHTML()}
-    <div class="bl-body">${section('Food', '🍽️', foods)}${section('Symptoms', '🌡️', symptoms)}</div>
-    <div class="diary-actions"><button class="add-task-btn" onclick="openDiaryForm(null,'','food')">+ Add Food Favorite</button><button class="add-task-btn" onclick="openDiaryForm(null,'','symptom')">+ Add Symptom Favorite</button></div>
   </div>`;
   updateBacklogBadge();
 }
@@ -1779,19 +1541,10 @@ function editTask(id) {
   openForm(t, t.date || '');
 }
 
-function editDiaryEntry(id) {
-  const t = diaryEntries.find(x => x.id === id);
-  if (!t) return;
-  openDiaryForm(t, t.date || '', t.entryKind || 'food');
-}
-
 function rerender() {
   if (currentView === 'calendar') {
     renderCalendar();
     if (currentSelDay) renderPanelTasks(currentSelDay);
-  } else if (currentView === 'diary') {
-    renderDiaryCalendar();
-    if (currentSelDay) renderDiaryPanel(currentSelDay);
   } else if (currentView === 'inventory') {
       renderInventory();
   } else {
@@ -1805,45 +1558,8 @@ function updateBacklogBadge() {
   if (el) { el.textContent = n; el.style.display = n > 0 ? '' : 'none'; }
 }
 
-function applyFormModeLabels() {
-  const isDiary = formMode === 'diary';
-  const kindName = diaryEntryKind === 'food' ? 'Food' : 'Symptom';
-  document.getElementById('task-modal').classList.toggle('diary-theme', isDiary);
-  document.getElementById('f-title-label').textContent = isDiary ? `${kindName} name *` : 'Task name *';
-  document.getElementById('f-title').placeholder = isDiary ? (diaryEntryKind === 'food' ? 'What did you eat?' : 'What symptom did you experience?') : 'What needs to be done?';
-  document.getElementById('f-type-label').textContent = isDiary ? `${kindName} type` : 'Task type';
-  document.getElementById('f-priority-label').textContent = isDiary ? (diaryEntryKind === 'food' ? 'Amount' : 'Intensity') : 'Priority / Urgency';
-  document.getElementById('f-priority-hint').textContent = isDiary ? (diaryEntryKind === 'food' ? 'Use the four levels to capture how much you ate.' : 'Use the four levels to capture symptom intensity.') : '🔴 Critical = non-negotiable  |  🟠 High = do today  |  🟡 Medium = soon  |  ⚪ Low = whenever';
-}
-
-function openDiaryForm(entry, defaultDate, kind) {
-  formMode = 'diary';
-  diaryEntryKind = kind || (entry && entry.entryKind) || 'food';
-  applyFormModeLabels();
-  editTaskId = entry ? entry.id : null;
-  document.getElementById('modal-title').textContent = entry ? `✏️ Edit ${diaryEntryKind === 'food' ? 'Food' : 'Symptom'}` : (diaryEntryKind === 'food' ? '🍽️ Log Food' : '🌡️ Log Symptom');
-  document.getElementById('save-btn').textContent = entry ? 'Save Changes' : (diaryEntryKind === 'food' ? 'Save Food' : 'Save Symptom');
-  document.getElementById('f-title').value = entry ? entry.title : '';
-  document.getElementById('f-notes').value = entry ? (entry.notes || '') : '';
-  document.getElementById('f-date').value = entry ? (entry.date || defaultDate || todayDS()) : (defaultDate || todayDS());
-  setType(entry ? entry.type : (defaultDate ? 'daily' : 'general'), true);
-  setPriority(entry ? (entry.priority || 'medium') : 'medium', true);
-  const rd = entry ? (entry.recurringDays || 7) : 7;
-  formRecDays = rd;
-  document.getElementById('f-rec-days').value = rd;
-  document.getElementById('delete-btn').style.display = entry ? '' : 'none';
-  syncIntervalBtns();
-  updateSaveBtn();
-  document.getElementById('form-backdrop').style.display = '';
-  document.getElementById('task-modal').style.display = '';
-  _pushModal(_closeFormUI);
-  if (!entry) document.getElementById('f-title').focus();
-}
-
 function openForm(task, defaultDate) {
-  formMode = 'task';
   editTaskId = task ? task.id : null;
-  applyFormModeLabels();
   document.getElementById('modal-title').textContent = task ? '✏️ Edit Task' : '＋ New Task';
   document.getElementById('save-btn').textContent = task ? 'Save Changes' : 'Add Task';
   document.getElementById('f-title').value = task ? task.title : '';
@@ -1869,9 +1585,8 @@ function deleteEditingTask() {
   if (!editTaskId) return;
   showConfirm('🗑️ Delete Entry', 'Are you sure you want to delete this entry? This cannot be undone.', async () => {
     const id = editTaskId;
-    const mode = formMode;
     closeForm();
-    if (mode === 'diary') await fbDeleteDiary(id); else await fbDelete(id);
+    await fbDelete(id);
     showToast('🗑️ Entry deleted successfully');
   }, true);
 }
@@ -1967,21 +1682,6 @@ async function saveTask() {
     const recDays = formType === 'recurring' ? (parseInt(document.getElementById('f-rec-days').value) || 7) : null;
     const autoReschedule = formType !== 'general';
 
-    if (formMode === 'diary') {
-      if (editTaskId) {
-        const entry = diaryEntries.find(x => x.id === editTaskId);
-        if (entry) {
-          entry.title=title; entry.type=formType; entry.date=date; entry.priority=formPriority; entry.recurringDays=recDays; entry.notes=notes; entry.entryKind=diaryEntryKind;
-          await fbSaveDiary(entry);
-        }
-      } else {
-        const entry = {id:genId(), title, type:formType, entryKind:diaryEntryKind, date, priority:formPriority, recurringDays:recDays, notes, createdAt:new Date().toISOString()};
-        await fbSaveDiary(entry);
-      }
-      closeForm();
-      return;
-    }
-
     if (editTaskId) {
       const t = tasks.find(x => x.id === editTaskId);
       if (t) {
@@ -2055,9 +1755,7 @@ function renderTaskTitleSuggestions(query = '') {
   
   const currentId = editTaskId;
   const seen = new Set();
-  const dataPool = formMode === 'diary' ? diaryEntries.filter(e => e.entryKind === diaryEntryKind) : tasks;
-
-  const suggestions = dataPool
+  const suggestions = tasks
     .filter(t => t.id !== currentId && t.title && matchesAllTokens(t.title, tokens))
     .sort((a,b) => a.title.localeCompare(b.title, undefined, { sensitivity:'base' }))
     .map(t => t.title)
@@ -2101,8 +1799,7 @@ function renderSearchSuggestions(query = '') {
   }
   
   const seen = new Set();
-  const allItems = [...tasks, ...diaryEntries];
-  const suggestions = allItems
+  const suggestions = tasks
     .filter(t => t.title && matchesAllTokens(t.title, tokens))
     .sort((a,b) => {
       if (a.completed !== b.completed) return a.completed ? 1 : -1;
@@ -2141,35 +1838,14 @@ function searchDateSort(a, b, newestFirst = false) {
 }
 
 function searchResultHTML(t, q) {
-  const isDiary = !!t.entryKind;
   const pr = PRIO[t.priority] || PRIO.medium;
-  
-  let dateChip = '';
-  if (t.type === 'general') {
-    dateChip = isDiary ? `<span class="src-type-chip">⭐ Favorite</span>` : `<span class="src-type-chip">📦 Backlog</span>`;
-  } else if (t.date) {
-    dateChip = `<span class="src-date-chip">📅 ${fmtDate(t.date)}</span>`;
-  }
+  let dateChip = t.type === 'general' ? `<span class="src-type-chip">📦 Backlog</span>` : t.date ? `<span class="src-date-chip">📅 ${fmtDate(t.date)}</span>` : '';
   if (t.type === 'recurring') dateChip += `<span class="src-type-chip">🔄 every ${t.recurringDays}d</span>`;
-  
-  let clickAction = '';
-  if (isDiary) {
-    clickAction = t.date ? `onDiarySearchResultClick('${t.id}','${t.date}')` : `onDiarySearchResultClickBacklog('${t.id}')`;
-  } else {
-    clickAction = t.date ? `onSearchResultClick('${t.id}','${t.date}')` : `onSearchResultClickBacklog('${t.id}')`;
-  }
+  const clickAction = t.date ? `onSearchResultClick('${t.id}','${t.date}')` : `onSearchResultClickBacklog('${t.id}')`;
 
-  let kindBadge = '';
-  if (isDiary) kindBadge = `<span class="src-type-chip">${t.entryKind === 'food' ? '🍽️ Food' : '🌡️ Symptom'}</span>`;
-  else if (t.completed) kindBadge = `<span class="src-type-chip">✓ Done</span>`;
-
-  const badgeText = isDiary ? `${t.entryKind === 'food' ? 'Amount' : 'Intensity'}: ${pr.label}` : pr.label;
-  const titleCls = (!isDiary && t.completed) ? 'src-title done' : 'src-title';
-  const borderCol = (!isDiary && t.completed) ? '#d1d5db' : pr.dot;
-
-  return `<div class="search-result-card" style="border-left-color:${borderCol}" onclick="${clickAction}">
-    <div class="${titleCls}">${highlight(t.title, q)}</div>
-    <div class="src-meta"><span class="p-badge" style="background:${pr.bg};color:${pr.color}">${badgeText}</span>${dateChip}${kindBadge}</div>
+  return `<div class="search-result-card" style="border-left-color:${t.completed?'#d1d5db':pr.dot}" onclick="${clickAction}">
+    <div class="${t.completed?'src-title done':'src-title'}">${highlight(t.title, q)}</div>
+    <div class="src-meta"><span class="p-badge" style="background:${pr.bg};color:${pr.color}">${pr.label}</span>${dateChip}${t.completed?'<span class="src-type-chip">✓ Done</span>':''}</div>
     ${t.notes ? `<div class="src-notes">${highlight(t.notes, q)}</div>` : ''}
   </div>`;
 }
@@ -2180,25 +1856,22 @@ function runSearch() {
   const tokens = q.toLowerCase().split(/\s+/).filter(Boolean);
   
   if (!tokens.length) { 
-    resultsEl.innerHTML = `<div class="search-empty"><div class="search-empty-icon">🔍</div><div class="search-empty-title">Search your items</div><div class="search-empty-sub">Type anything to find tasks, foods, or symptoms</div></div>`; 
+    resultsEl.innerHTML = `<div class="search-empty"><div class="search-empty-icon">🔍</div><div class="search-empty-title">Search your tasks</div><div class="search-empty-sub">Type anything to find tasks by name or notes</div></div>`;
     return; 
   }
   
-  const allItems = [...tasks, ...diaryEntries];
-  const matches = allItems.filter(t => matchesAllTokens(t.title, tokens) || matchesAllTokens(t.notes, tokens));
+  const matches = tasks.filter(t => matchesAllTokens(t.title, tokens) || matchesAllTokens(t.notes, tokens));
   
   if (matches.length === 0) { 
     resultsEl.innerHTML = `<div class="search-empty"><div class="search-empty-icon">🤷</div><div class="search-empty-title">No results for "${escHtml(q)}"</div><div class="search-empty-sub">Try a different search term</div></div>`; 
     return; 
   }
   
-  const pendingTasks = matches.filter(t => !t.entryKind && !t.completed).sort((a,b) => searchDateSort(a, b, false));
-  const completedTasks = matches.filter(t => !t.entryKind && t.completed).sort((a,b) => searchDateSort(a, b, true));
-  const diaryMatches = matches.filter(t => t.entryKind).sort((a,b) => searchDateSort(a, b, true));
+  const pendingTasks = matches.filter(t => !t.completed).sort((a,b) => searchDateSort(a, b, false));
+  const completedTasks = matches.filter(t => t.completed).sort((a,b) => searchDateSort(a, b, true));
   
   let html = `<div class="search-count">${matches.length} result${matches.length !== 1 ? 's' : ''}</div>`;
   if (pendingTasks.length) html += `<div class="section-divider">To do</div>` + pendingTasks.map(t => searchResultHTML(t, q)).join('');
-  if (diaryMatches.length) html += `<div class="section-divider">Diary Entries</div>` + diaryMatches.map(t => searchResultHTML(t, q)).join('');
   if (completedTasks.length) html += `<div class="section-divider">✓ Completed Tasks</div>` + completedTasks.map(t => searchResultHTML(t, q)).join('');
   
   resultsEl.innerHTML = html;
@@ -2218,23 +1891,6 @@ function onSearchResultClickBacklog(id) {
   closeSearch();
   switchView('backlog');
   setTimeout(() => editTask(id), 80);
-}
-
-function onDiarySearchResultClick(id, date) {
-  closeSearch();
-  diaryDate = new Date(date + 'T12:00:00');
-  switchView('diary');
-  setTimeout(() => {
-    openDiaryDay(date);
-    setTimeout(() => editDiaryEntry(id), 80);
-  }, 50);
-}
-
-function onDiarySearchResultClickBacklog(id) {
-  closeSearch();
-  backlogView = 'diary';
-  switchView('backlog');
-  setTimeout(() => editDiaryEntry(id), 80);
 }
 
 // ─── TOAST NOTIFICATIONS ───
@@ -2447,13 +2103,9 @@ function swipeEnd(e) {
   const dy = t.clientY - swipeState.y;
   if (Math.abs(dx) < SWIPE_MIN_X || Math.abs(dy) > SWIPE_MAX_Y) { swipeState = null; return; }
   if (swipeState.mode === 'month') (dx < 0 ? nextMonth() : prevMonth());
-  if (swipeState.mode === 'diaryMonth') (dx < 0 ? nextDiaryMonth() : prevDiaryMonth());
-  if (swipeState.mode === 'day' && swipeState.day) {
-    const targetDay = addDays(swipeState.day, dx < 0 ? 1 : -1);
-    if (currentView === 'diary') openDiaryDay(targetDay); else openDay(targetDay);
-  }
+  if (swipeState.mode === 'day' && swipeState.day) openDay(addDays(swipeState.day, dx < 0 ? 1 : -1));
   if (swipeState.mode === 'tab') {
-    const order = ['calendar', 'inventory', 'backlog', 'diary', 'search'];
+    const order = ['calendar', 'inventory', 'backlog', 'search'];
     const current = document.getElementById('search-panel').classList.contains('open') ? 'search' : currentView;
     const i = order.indexOf(current);
     const next = dx < 0 ? (i + 1) % order.length : (i - 1 + order.length) % order.length;
