@@ -426,7 +426,7 @@ if (localStorage.getItem('flowdo_was_logged_in') === 'true') {
   <div class="search-panel-hdr">
     <div class="search-input-wrap" style="position:relative">
       <span class="search-icon">🔍</span>
-      <input id="search-input" type="text" placeholder="Search tasks…" oninput="runSearch();renderSearchSuggestions(this.value)" onfocus="renderSearchSuggestions(this.value)" autocomplete="off" />
+      <input id="search-input" type="text" placeholder="Search tasks…" oninput="queueSearchUpdate(this.value)" onfocus="renderSearchSuggestions(this.value)" autocomplete="off" />
       <div id="search-suggestions-dropdown" style="display:none; position:absolute; top:100%; left:0; right:0; background:#fff; border:1px solid #e2e8f0; border-radius:8px; box-shadow:0 4px 16px rgba(0,0,0,.15); max-height:180px; overflow-y:auto; z-index:500; margin-top:4px;"></div>
     </div>
     <button class="search-close-btn" onclick="closeSearch()">✕</button>
@@ -471,7 +471,7 @@ if (localStorage.getItem('flowdo_was_logged_in') === 'true') {
   <div class="modal-body">
     <div class="form-group" style="position:relative">
       <label class="form-label" id="f-title-label">Task name *</label>
-      <input class="form-input" id="f-title" placeholder="What needs to be done?" oninput="updateSaveBtn();renderTaskTitleSuggestions(this.value)" onfocus="renderTaskTitleSuggestions(this.value)" autocomplete="off" />
+      <input class="form-input" id="f-title" placeholder="What needs to be done?" oninput="updateSaveBtn();queueTaskTitleSuggestions(this.value)" onfocus="renderTaskTitleSuggestions(this.value)" autocomplete="off" />
       <div id="task-title-dropdown" style="display:none; position:absolute; top:100%; left:0; right:0; background:#fff; border:1px solid #e2e8f0; border-radius:8px; box-shadow:0 4px 16px rgba(0,0,0,.15); max-height:180px; overflow-y:auto; z-index:500; margin-top:4px;"></div>
     </div>
     <div class="form-group">
@@ -820,7 +820,7 @@ window.onAuthStateChange = function(user) {
         localStorage.setItem('flowdo_cached_tasks', JSON.stringify(tasks));
       }
       setSyncStatus('synced');
-      rerender();
+      scheduleRerender();
       if (!initialCheckDone) {
         initialCheckDone = true;
         setTimeout(runRescheduleCheck, 600);
@@ -834,7 +834,7 @@ window.onAuthStateChange = function(user) {
         localStorage.setItem('flowdo_cached_inventory', JSON.stringify(inventoryItems));
       }
       setSyncStatus('synced');
-      rerender();
+      scheduleRerender();
     });
 
     window._listenNotifSettings(user.uid, (settings, err) => {
@@ -843,7 +843,7 @@ window.onAuthStateChange = function(user) {
         localStorage.setItem(NOTIF_HOUR_KEY, String(settings.hour));
         const hourEl = document.getElementById('notif-hour');
         if (hourEl) hourEl.value = notifHour();
-        rerender();
+        scheduleRerender();
       } else {
         window._saveNotifHour(user.uid, notifHour()).catch(() => {});
       }
@@ -1011,9 +1011,8 @@ const PRIO = {
 };
 const P_ORDER = ['critical','high','medium','low'];
 
-function cellColor(ds) {
-  const dayTasks = tasks.filter(x => x.date === ds);
-  if (!dayTasks.length || ds > todayDS()) return null;
+function cellColor(dayTasks, ds, today) {
+  if (!dayTasks.length || ds > today) return null;
   const done = dayTasks.filter(x => x.completed).length;
   if (done >= 4) return { bg:'#dcfce7', bar:'#16a34a', text:'#15803d' };
   if (done >= 2) return { bg:'#fef9c3', bar:'#ca8a04', text:'#a16207' };
@@ -1058,6 +1057,13 @@ function renderCalendar() {
   const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month+1, 0).getDate();
   const td = todayDS();
+  const tasksByDate = new Map();
+  for (const task of tasks) {
+    if (!task.date) continue;
+    const dayTasks = tasksByDate.get(task.date);
+    if (dayTasks) dayTasks.push(task);
+    else tasksByDate.set(task.date, [task]);
+  }
 
   let html = `<div class="cal-box">
     <div class="month-nav">
@@ -1071,9 +1077,9 @@ function renderCalendar() {
 
   for (let i = 1; i <= daysInMonth; i++) {
     const ds = `${year}-${String(month+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
-    const dt = tasks.filter(t => t.date === ds).sort(taskPanelSort);
+    const dt = (tasksByDate.get(ds) || []).slice().sort(taskPanelSort);
     const total = dt.length, done = dt.filter(t => t.completed).length, pct = total > 0 ? done/total : 0;
-    const col = cellColor(ds);
+    const col = cellColor(dt, ds, td);
     const isToday = ds === td, isSel = ds === currentSelDay;
     const outline = isSel ? '2.5px solid #1e3a5f' : isToday ? '2.5px solid #f59e0b' : 'none';
     const numCls = 'day-num' + (isToday ? ' is-today' : '');
@@ -1282,26 +1288,16 @@ function taskCardHTML(t, {showBacklog=false, showMove=false}) {
 
 // ─── INVENTORY (PANTRY) ───
 function renderInventory() {
-  // Low stock items (always first)
-  const lowStock = inventoryItems
-    .filter(i => i.count > 0 && i.count <= i.lowStockThreshold)
-    .sort((a, b) => {
-      if (a.count !== b.count) return a.count - b.count;
-      return a.title.localeCompare(b.title);
-    });
-
-  // Everything else in stock
-  const normalStock = inventoryItems
-    .filter(i => i.count > i.lowStockThreshold)
-    .sort((a, b) => {
-      if (a.count !== b.count) return a.count - b.count;
-      return a.title.localeCompare(b.title);
-    });
-
-  // Out of stock (alphabetical)
-  const depleted = inventoryItems
-    .filter(i => i.count === 0)
-    .sort((a, b) => a.title.localeCompare(b.title));
+  const lowStock = [], normalStock = [], depleted = [];
+  for (const item of inventoryItems) {
+    if (item.count === 0) depleted.push(item);
+    else if (item.count <= item.lowStockThreshold) lowStock.push(item);
+    else normalStock.push(item);
+  }
+  const countThenTitle = (a, b) => a.count - b.count || a.title.localeCompare(b.title);
+  lowStock.sort(countThenTitle);
+  normalStock.sort(countThenTitle);
+  depleted.sort((a, b) => a.title.localeCompare(b.title));
 
   const active = [...lowStock, ...normalStock];
 
@@ -1552,6 +1548,15 @@ function rerender() {
   }
 }
 
+let rerenderFrame = null;
+function scheduleRerender() {
+  if (rerenderFrame !== null) return;
+  rerenderFrame = requestAnimationFrame(() => {
+    rerenderFrame = null;
+    rerender();
+  });
+}
+
 function updateBacklogBadge() {
   const n = tasks.filter(t => t.type === 'general' && !t.completed).length;
   const el = document.getElementById('bl-badge');
@@ -1709,6 +1714,21 @@ function openSearch() {
   document.getElementById('search-input').focus();
 }
 
+let searchUpdateTimer = null;
+function queueSearchUpdate(query) {
+  clearTimeout(searchUpdateTimer);
+  if (!query.trim()) {
+    runSearch();
+    renderSearchSuggestions(query);
+    return;
+  }
+  searchUpdateTimer = setTimeout(() => {
+    searchUpdateTimer = null;
+    runSearch();
+    renderSearchSuggestions(query);
+  }, 120);
+}
+
 function _closeSearchUI() {
   document.getElementById('search-panel').classList.remove('open');
   document.getElementById('search-input').value = '';
@@ -1738,9 +1758,24 @@ function highlight(text, query) {
 }
 
 function selectTaskTitle(val) {
+  clearTimeout(taskTitleSuggestionsTimer);
+  taskTitleSuggestionsTimer = null;
   document.getElementById('f-title').value = val;
   document.getElementById('task-title-dropdown').style.display = 'none';
   updateSaveBtn();
+}
+
+let taskTitleSuggestionsTimer = null;
+function queueTaskTitleSuggestions(query) {
+  clearTimeout(taskTitleSuggestionsTimer);
+  if (!query.trim()) {
+    renderTaskTitleSuggestions(query);
+    return;
+  }
+  taskTitleSuggestionsTimer = setTimeout(() => {
+    taskTitleSuggestionsTimer = null;
+    renderTaskTitleSuggestions(query);
+  }, 120);
 }
 
 function renderTaskTitleSuggestions(query = '') {
@@ -1781,6 +1816,8 @@ function renderTaskTitleSuggestions(query = '') {
 }
 
 function selectSearchSuggestion(val) {
+  clearTimeout(searchUpdateTimer);
+  searchUpdateTimer = null;
   const input = document.getElementById('search-input');
   input.value = val;
   document.getElementById('search-suggestions-dropdown').style.display = 'none';
@@ -1904,7 +1941,16 @@ function showToast(msg) {
 }
 
 // ─── AUTO-RESCHEDULE ENGINE ───
-async function runRescheduleCheck() {
+let rescheduleCheckPromise = null;
+function runRescheduleCheck() {
+  if (rescheduleCheckPromise) return rescheduleCheckPromise;
+  rescheduleCheckPromise = performRescheduleCheck().finally(() => {
+    rescheduleCheckPromise = null;
+  });
+  return rescheduleCheckPromise;
+}
+
+async function performRescheduleCheck() {
   if (!currentUser) return;
   const td = todayDS();
   
